@@ -1,0 +1,2028 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Product Management System</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f6fa;
+            color: #172033;
+        }
+
+        .container {
+            width: 92%;
+            max-width: 1300px;
+            margin: 30px auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #667085;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 28px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .card h2 {
+            margin-top: 0;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 18px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccd5e0;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #2864e8;
+        }
+
+        button {
+            border: none;
+            border-radius: 7px;
+            padding: 11px 18px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .primary {
+            background: #2864e8;
+            color: white;
+        }
+
+        .secondary {
+            background: #66758c;
+            color: white;
+        }
+
+        .edit {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .delete {
+            background: #dc2626;
+            color: white;
+        }
+
+        .form-button {
+            margin-top: 20px;
+        }
+
+        .search-row {
+            display: grid;
+            grid-template-columns: 180px 1fr auto auto;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .sort-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .sort-row label {
+            margin: 0;
+        }
+
+        .sort-row select {
+            width: 200px;
+        }
+
+        .count {
+            color: #667085;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #1e293b;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+
+        td {
+            padding: 14px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            min-width: 42px;
+            background: #e5e7eb;
+            color: #172033;
+        }
+
+        .pagination button.active {
+            background: #2864e8;
+            color: white;
+        }
+
+        .message {
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+
+        /* EDIT MODAL */
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.65);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 550px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close-button {
+            background: transparent;
+            color: #64748b;
+            font-size: 28px;
+            padding: 0 8px;
+        }
+
+        .close-button:hover {
+            color: #dc2626;
+        }
+
+        .modal-form-group {
+            margin-bottom: 18px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .product-id-display {
+            background: #f1f5f9;
+            padding: 10px 12px;
+            border-radius: 7px;
+            color: #475569;
+            margin-bottom: 20px;
+        }
+
+
+        @media (max-width: 800px) {
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .search-row {
+                grid-template-columns: 1fr;
+            }
+
+            .sort-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .sort-row select {
+                width: 100%;
+            }
+
+            table {
+                font-size: 13px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <h1>
+        Product Management System
+    </h1>
+
+
+    <div class="subtitle">
+        Manage your products easily
+    </div>
+
+
+    <!-- ADD PRODUCT -->
+
+    <div class="card">
+
+        <h2>
+            Add Product
+        </h2>
+
+
+        <div class="form-row">
+
+
+            <div>
+
+                <label>
+                    Product Name
+                </label>
+
+                <input
+                    type="text"
+                    id="name"
+                    placeholder="Enter product name">
+
+            </div>
+
+
+            <div>
+
+                <label>
+                    Price
+                </label>
+
+                <input
+                    type="number"
+                    id="price"
+                    placeholder="Enter price"
+                    min="0.01"
+                    step="0.01">
+
+            </div>
+
+
+            <div>
+
+                <label>
+                    Quantity
+                </label>
+
+                <input
+                    type="number"
+                    id="quantity"
+                    placeholder="Enter quantity"
+                    min="0">
+
+            </div>
+
+        </div>
+
+
+        <div class="form-button">
+
+            <button
+                class="primary"
+                onclick="addProduct()">
+
+                Add Product
+
+            </button>
+
+        </div>
+
+
+        <div
+            id="message"
+            class="message">
+
+        </div>
+
+    </div>
+
+
+
+    <!-- PRODUCTS -->
+
+    <div class="card">
+
+
+        <h2>
+            Products
+        </h2>
+
+
+        <!-- SEARCH -->
+
+        <div class="search-row">
+
+
+            <select id="searchField">
+
+                <option value="all">
+                    All Fields
+                </option>
+
+                <option value="id">
+                    Product ID
+                </option>
+
+                <option value="name">
+                    Product Name
+                </option>
+
+                <option value="price">
+                    Price
+                </option>
+
+                <option value="quantity">
+                    Quantity
+                </option>
+
+            </select>
+
+
+            <input
+                type="text"
+                id="searchValue"
+                placeholder="Search products..."
+                onkeydown="handleSearchKey(event)">
+
+
+            <button
+                class="primary"
+                onclick="searchProducts()">
+
+                Search
+
+            </button>
+
+
+            <button
+                class="secondary"
+                onclick="clearSearch()">
+
+                Clear
+
+            </button>
+
+        </div>
+
+
+        <div
+            id="count"
+            class="count">
+
+            Loading products...
+
+        </div>
+
+
+
+        <!-- SORT -->
+
+        <div class="sort-row">
+
+
+            <label>
+                Sort By:
+            </label>
+
+
+            <select
+                id="sortBy"
+                onchange="handleSortChange()">
+
+                <option value="id">
+                    Default
+                </option>
+
+                <option value="name">
+                    Product Name
+                </option>
+
+                <option value="price">
+                    Price
+                </option>
+
+                <option value="quantity">
+                    Quantity
+                </option>
+
+            </select>
+
+
+            <select
+                id="direction"
+                onchange="handleSortChange()">
+
+                <option value="asc">
+                    Low / A-Z
+                </option>
+
+                <option value="desc">
+                    High / Z-A
+                </option>
+
+            </select>
+
+
+            <button
+                class="secondary"
+                onclick="refreshProducts()">
+
+                Refresh Products
+
+            </button>
+
+        </div>
+
+
+
+        <!-- TABLE -->
+
+        <table>
+
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        ID
+                    </th>
+
+                    <th>
+                        PRODUCT NAME
+                    </th>
+
+                    <th>
+                        PRICE
+                    </th>
+
+                    <th>
+                        QUANTITY
+                    </th>
+
+                    <th>
+                        ACTIONS
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody
+                id="productTable">
+
+            </tbody>
+
+
+        </table>
+
+
+
+        <!-- PAGINATION -->
+
+        <div
+            id="pagination"
+            class="pagination">
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+
+<!-- EDIT MODAL -->
+
+<div
+    id="editModal"
+    class="modal">
+
+
+    <div class="modal-content">
+
+
+        <div class="modal-header">
+
+            <h2>
+                Edit Product
+            </h2>
+
+
+            <button
+                class="close-button"
+                onclick="closeEditModal()">
+
+                ×
+
+            </button>
+
+        </div>
+
+
+        <div
+            id="editProductId"
+            class="product-id-display">
+
+            Product ID:
+
+        </div>
+
+
+        <div class="modal-form-group">
+
+            <label>
+                Product Name
+            </label>
+
+            <input
+                type="text"
+                id="editName"
+                placeholder="Enter product name">
+
+        </div>
+
+
+        <div class="modal-form-group">
+
+            <label>
+                Price
+            </label>
+
+            <input
+                type="number"
+                id="editPrice"
+                min="0.01"
+                step="0.01">
+
+        </div>
+
+
+        <div class="modal-form-group">
+
+            <label>
+                Quantity
+            </label>
+
+            <input
+                type="number"
+                id="editQuantity"
+                min="0">
+
+        </div>
+
+
+        <div
+            id="editMessage"
+            class="message">
+
+        </div>
+
+
+        <div class="modal-buttons">
+
+
+            <button
+                class="secondary"
+                onclick="closeEditModal()">
+
+                Cancel
+
+            </button>
+
+
+            <button
+                class="primary"
+                onclick="updateProduct()">
+
+                Update Product
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<script>
+
+
+    const API_URL = "/products";
+
+    const PAGE_SIZE = 10;
+
+    let currentPage = 0;
+
+    let editingProductId = null;
+
+
+
+    // =====================================================
+    // LOAD PRODUCTS
+    // =====================================================
+
+    async function loadProducts(page = 0) {
+
+        currentPage = page;
+
+        const sortBy =
+            document.getElementById(
+                "sortBy"
+            ).value;
+
+        const direction =
+            document.getElementById(
+                "direction"
+            ).value;
+
+        const url =
+            `${API_URL}` +
+            `?page=${page}` +
+            `&size=${PAGE_SIZE}` +
+            `&sortBy=${sortBy}` +
+            `&direction=${direction}`;
+
+        try {
+
+            const response =
+                await fetch(url);
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Unable to load products."
+                );
+
+            }
+
+            const data =
+                await response.json();
+
+            displayProducts(data);
+
+        }
+
+        catch (error) {
+
+            showMessage(
+                error.message,
+                "error"
+            );
+
+        }
+
+    }
+
+
+
+    // =====================================================
+    // DISPLAY PRODUCTS
+    // =====================================================
+
+    function displayProducts(data) {
+
+        const table =
+            document.getElementById(
+                "productTable"
+            );
+
+        table.innerHTML = "";
+
+
+        if (
+            !data.content ||
+            data.content.length === 0
+        ) {
+
+            table.innerHTML = `
+
+                <tr>
+
+                    <td
+                        colspan="5"
+                        style="
+                            text-align:center;
+                            padding:30px;
+                            color:#667085;
+                        ">
+
+                        No products found.
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+
+
+        data.content.forEach(
+            product => {
+
+                const row =
+                    document.createElement(
+                        "tr"
+                    );
+
+                row.innerHTML = `
+
+                    <td>
+                        ${product.id}
+                    </td>
+
+                    <td>
+                        <strong>
+                            ${escapeHtml(
+                                product.name
+                            )}
+                        </strong>
+                    </td>
+
+                    <td>
+                        ₹${Number(
+                            product.price
+                        ).toLocaleString(
+                            "en-IN"
+                        )}
+                    </td>
+
+                    <td>
+                        ${product.quantity}
+                    </td>
+
+                    <td>
+
+                        <div class="actions">
+
+                            <button
+                                class="edit"
+                                onclick="openEditModal(
+                                    ${product.id}
+                                )">
+
+                                Edit
+
+                            </button>
+
+                            <button
+                                class="delete"
+                                onclick="deleteProduct(
+                                    ${product.id},
+                                    '${escapeJs(
+                                        product.name
+                                    )}'
+                                )">
+
+                                Delete
+
+                            </button>
+
+                        </div>
+
+                    </td>
+
+                `;
+
+                table.appendChild(row);
+
+            }
+        );
+
+
+        updateCount(data);
+
+        createPagination(data);
+
+    }
+
+
+
+    // =====================================================
+    // COUNT
+    // =====================================================
+
+    function updateCount(data) {
+
+        if (
+            data.totalElements === 0
+        ) {
+
+            document.getElementById(
+                "count"
+            ).innerText =
+                "No products found.";
+
+            return;
+
+        }
+
+
+        const first =
+            data.number *
+            data.size +
+            1;
+
+        const last =
+            Math.min(
+                (data.number + 1)
+                * data.size,
+
+                data.totalElements
+            );
+
+
+        document.getElementById(
+            "count"
+        ).innerText =
+
+            `Showing ${first}–${last} of `
+            + `${data.totalElements} products`;
+
+    }
+
+
+
+    // =====================================================
+    // PAGINATION
+    // =====================================================
+
+    function createPagination(data) {
+
+        const pagination =
+            document.getElementById(
+                "pagination"
+            );
+
+        pagination.innerHTML = "";
+
+
+        if (
+            data.totalPages <= 1
+        ) {
+
+            return;
+
+        }
+
+
+        const previous =
+            document.createElement(
+                "button"
+            );
+
+        previous.innerText =
+            "Previous";
+
+        previous.disabled =
+            data.first;
+
+        previous.onclick =
+            () => goToPage(
+                data.number - 1
+            );
+
+        pagination.appendChild(
+            previous
+        );
+
+
+        for (
+            let i = 0;
+            i < data.totalPages;
+            i++
+        ) {
+
+            const button =
+                document.createElement(
+                    "button"
+                );
+
+            button.innerText =
+                i + 1;
+
+
+            if (
+                i === data.number
+            ) {
+
+                button.classList.add(
+                    "active"
+                );
+
+            }
+
+            button.onclick =
+                () => goToPage(i);
+
+            pagination.appendChild(
+                button
+            );
+
+        }
+
+
+        const next =
+            document.createElement(
+                "button"
+            );
+
+        next.innerText =
+            "Next";
+
+        next.disabled =
+            data.last;
+
+        next.onclick =
+            () => goToPage(
+                data.number + 1
+            );
+
+        pagination.appendChild(
+            next
+        );
+
+    }
+
+
+
+    // =====================================================
+    // GO TO PAGE
+    // =====================================================
+
+    function goToPage(page) {
+
+        const searchValue =
+            document.getElementById(
+                "searchValue"
+            )
+            .value
+            .trim();
+
+
+        if (searchValue) {
+
+            loadSearchResults(page);
+
+        }
+
+        else {
+
+            loadProducts(page);
+
+        }
+
+    }
+
+
+
+    // =====================================================
+    // SEARCH
+    // =====================================================
+
+    function searchProducts() {
+
+        const value =
+            document.getElementById(
+                "searchValue"
+            )
+            .value
+            .trim();
+
+
+        if (!value) {
+
+            loadProducts(0);
+
+            return;
+
+        }
+
+
+        loadSearchResults(0);
+
+    }
+
+
+
+    // =====================================================
+    // SEARCH RESULTS
+    // =====================================================
+
+    async function loadSearchResults(
+        page = 0
+    ) {
+
+        const field =
+            document.getElementById(
+                "searchField"
+            )
+            .value;
+
+
+        const value =
+            document.getElementById(
+                "searchValue"
+            )
+            .value
+            .trim();
+
+
+        if (!value) {
+
+            loadProducts(0);
+
+            return;
+
+        }
+
+
+        currentPage = page;
+
+
+        const sortBy =
+            document.getElementById(
+                "sortBy"
+            )
+            .value;
+
+
+        const direction =
+            document.getElementById(
+                "direction"
+            )
+            .value;
+
+
+        const url =
+
+            `${API_URL}/search` +
+
+            `?field=${encodeURIComponent(
+                field
+            )}` +
+
+            `&value=${encodeURIComponent(
+                value
+            )}` +
+
+            `&page=${page}` +
+
+            `&size=${PAGE_SIZE}` +
+
+            `&sortBy=${sortBy}` +
+
+            `&direction=${direction}`;
+
+
+        try {
+
+            const response =
+                await fetch(url);
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Unable to search products."
+                );
+
+            }
+
+
+            const data =
+                await response.json();
+
+
+            displayProducts(data);
+
+        }
+
+        catch (error) {
+
+            showMessage(
+                error.message,
+                "error"
+            );
+
+        }
+
+    }
+
+
+
+    // =====================================================
+    // SORT
+    // =====================================================
+
+    function handleSortChange() {
+
+        const searchValue =
+            document.getElementById(
+                "searchValue"
+            )
+            .value
+            .trim();
+
+
+        if (searchValue) {
+
+            loadSearchResults(0);
+
+        }
+
+        else {
+
+            loadProducts(0);
+
+        }
+
+    }
+
+
+
+    // =====================================================
+    // REFRESH
+    // =====================================================
+
+    function refreshProducts() {
+
+        document.getElementById(
+            "searchValue"
+        ).value = "";
+
+
+        document.getElementById(
+            "searchField"
+        ).value = "all";
+
+
+        loadProducts(0);
+
+    }
+
+
+
+    // =====================================================
+    // CLEAR SEARCH
+    // =====================================================
+
+    function clearSearch() {
+
+        document.getElementById(
+            "searchValue"
+        ).value = "";
+
+
+        document.getElementById(
+            "searchField"
+        ).value = "all";
+
+
+        loadProducts(0);
+
+    }
+
+
+
+    // =====================================================
+    // ENTER KEY
+    // =====================================================
+
+    function handleSearchKey(event) {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            searchProducts();
+
+        }
+
+    }
+
+
+
+    // =====================================================
+    // ADD PRODUCT
+    // =====================================================
+
+    async function addProduct() {
+
+        const name =
+            document.getElementById(
+                "name"
+            )
+            .value
+            .trim();
+
+
+        const price =
+            Number(
+                document.getElementById(
+                    "price"
+                ).value
+            );
+
+
+        const quantity =
+            Number(
+                document.getElementById(
+                    "quantity"
+                ).value
+            );
+
+
+        if (!name) {
+
+            showMessage(
+                "Please enter product name.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        if (
+            !Number.isFinite(price)
+            ||
+            price <= 0
+        ) {
+
+            showMessage(
+                "Price must be greater than 0.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        if (
+            !Number.isInteger(quantity)
+            ||
+            quantity < 0
+        ) {
+
+            showMessage(
+                "Quantity cannot be negative.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        const product = {
+
+            name: name,
+
+            price: price,
+
+            quantity: quantity
+
+        };
+
+
+        try {
+
+            const response =
+                await fetch(
+                    API_URL,
+                    {
+
+                        method: "POST",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json"
+
+                        },
+
+                        body:
+                            JSON.stringify(
+                                product
+                            )
+
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                const error =
+                    await response.json();
+
+
+                throw new Error(
+                    Object.values(error)
+                        .join(" ")
+                );
+
+            }
+
+
+            showMessage(
+                "Product added successfully.",
+                "success"
+            );
+
+
+            document.getElementById(
+                "name"
+            ).value = "";
+
+
+            document.getElementById(
+                "price"
+            ).value = "";
+
+
+            document.getElementById(
+                "quantity"
+            ).value = "";
+
+
+            loadProducts(0);
+
+        }
+
+        catch (error) {
+
+            showMessage(
+                error.message,
+                "error"
+            );
+
+        }
+
+    }
+
+
+
+    // =====================================================
+    // OPEN EDIT MODAL
+    // =====================================================
+
+    async function openEditModal(id) {
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API_URL}/${id}`
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Unable to load product."
+                );
+
+            }
+
+
+            const product =
+                await response.json();
+
+
+            editingProductId =
+                product.id;
+
+
+            document.getElementById(
+                "editProductId"
+            ).innerText =
+                `Product ID: ${product.id}`;
+
+
+            document.getElementById(
+                "editName"
+            ).value =
+                product.name;
+
+
+            document.getElementById(
+                "editPrice"
+            ).value =
+                product.price;
+
+
+            document.getElementById(
+                "editQuantity"
+            ).value =
+                product.quantity;
+
+
+            document.getElementById(
+                "editMessage"
+            ).style.display =
+                "none";
+
+
+            document.getElementById(
+                "editModal"
+            ).style.display =
+                "flex";
+
+        }
+
+        catch (error) {
+
+            showMessage(
+                error.message,
+                "error"
+            );
+
+        }
+
+    }
+
+
+
+    // =====================================================
+    // CLOSE EDIT MODAL
+    // =====================================================
+
+    function closeEditModal() {
+
+        editingProductId =
+            null;
+
+
+        document.getElementById(
+            "editModal"
+        ).style.display =
+            "none";
+
+
+        document.getElementById(
+            "editMessage"
+        ).style.display =
+            "none";
+
+    }
+
+
+
+    // =====================================================
+    // UPDATE PRODUCT
+    // =====================================================
+
+    async function updateProduct() {
+
+        if (
+            editingProductId === null
+        ) {
+
+            return;
+
+        }
+
+
+        const name =
+            document.getElementById(
+                "editName"
+            )
+            .value
+            .trim();
+
+
+        const price =
+            Number(
+                document.getElementById(
+                    "editPrice"
+                ).value
+            );
+
+
+        const quantity =
+            Number(
+                document.getElementById(
+                    "editQuantity"
+                ).value
+            );
+
+
+        if (!name) {
+
+            showEditMessage(
+                "Product name cannot be empty.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        if (
+            !Number.isFinite(price)
+            ||
+            price <= 0
+        ) {
+
+            showEditMessage(
+                "Price must be greater than 0.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        if (
+            !Number.isInteger(quantity)
+            ||
+            quantity < 0
+        ) {
+
+            showEditMessage(
+                "Quantity cannot be negative.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        const product = {
+
+            name: name,
+
+            price: price,
+
+            quantity: quantity
+
+        };
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API_URL}/${editingProductId}`,
+                    {
+
+                        method: "PUT",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json"
+
+                        },
+
+                        body:
+                            JSON.stringify(
+                                product
+                            )
+
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                const error =
+                    await response.json();
+
+
+                throw new Error(
+                    Object.values(error)
+                        .join(" ")
+                );
+
+            }
+
+
+            closeEditModal();
+
+
+            showMessage(
+                "Product updated successfully.",
+                "success"
+            );
+
+
+            const searchValue =
+                document.getElementById(
+                    "searchValue"
+                )
+                .value
+                .trim();
+
+
+            if (searchValue) {
+
+                loadSearchResults(
+                    currentPage
+                );
+
+            }
+
+            else {
+
+                loadProducts(
+                    currentPage
+                );
+
+            }
+
+        }
+
+        catch (error) {
+
+            showEditMessage(
+                error.message,
+                "error"
+            );
+
+        }
+
+    }
+
+
+
+    // =====================================================
+    // DELETE PRODUCT
+    // =====================================================
+
+    async function deleteProduct(
+        id,
+        name
+    ) {
+
+        const confirmed =
+            confirm(
+                `Are you sure you want to delete ${name}?`
+            );
+
+
+        if (!confirmed) {
+
+            return;
+
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API_URL}/${id}`,
+                    {
+
+                        method: "DELETE"
+
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Unable to delete product."
+                );
+
+            }
+
+
+            showMessage(
+                "Product deleted successfully.",
+                "success"
+            );
+
+
+            const searchValue =
+                document.getElementById(
+                    "searchValue"
+                )
+                .value
+                .trim();
+
+
+            if (searchValue) {
+
+                loadSearchResults(
+                    currentPage
+                );
+
+            }
+
+            else {
+
+                loadProducts(
+                    currentPage
+                );
+
+            }
+
+        }
+
+        catch (error) {
+
+            showMessage(
+                error.message,
+                "error"
+            );
+
+        }
+
+    }
+
+
+
+    // =====================================================
+    // EDIT MESSAGE
+    // =====================================================
+
+    function showEditMessage(
+        message,
+        type
+    ) {
+
+        const element =
+            document.getElementById(
+                "editMessage"
+            );
+
+
+        element.innerText =
+            message;
+
+
+        element.className =
+            `message ${type}`;
+
+
+        element.style.display =
+            "block";
+
+    }
+
+
+
+    // =====================================================
+    // MAIN MESSAGE
+    // =====================================================
+
+    function showMessage(
+        message,
+        type
+    ) {
+
+        const element =
+            document.getElementById(
+                "message"
+            );
+
+
+        element.innerText =
+            message;
+
+
+        element.className =
+            `message ${type}`;
+
+
+        element.style.display =
+            "block";
+
+
+        setTimeout(
+            () => {
+
+                element.style.display =
+                    "none";
+
+            },
+            3000
+        );
+
+    }
+
+
+
+    // =====================================================
+    // SECURITY HELPERS
+    // =====================================================
+
+    function escapeHtml(value) {
+
+        return String(value)
+
+            .replace(
+                /&/g,
+                "&amp;"
+            )
+
+            .replace(
+                /</g,
+                "&lt;"
+            )
+
+            .replace(
+                />/g,
+                "&gt;"
+            )
+
+            .replace(
+                /"/g,
+                "&quot;"
+            )
+
+            .replace(
+                /'/g,
+                "&#039;"
+            );
+
+    }
+
+
+    function escapeJs(value) {
+
+        return String(value)
+
+            .replace(
+                /\\/g,
+                "\\\\"
+            )
+
+            .replace(
+                /'/g,
+                "\\'"
+            )
+
+            .replace(
+                /"/g,
+                '\\"'
+            );
+
+    }
+
+
+
+    // =====================================================
+    // CLOSE MODAL OUTSIDE CLICK
+    // =====================================================
+
+    window.onclick =
+        function(event) {
+
+            const modal =
+                document.getElementById(
+                    "editModal"
+                );
+
+
+            if (
+                event.target === modal
+            ) {
+
+                closeEditModal();
+
+            }
+
+        };
+
+
+
+    // =====================================================
+    // INITIAL LOAD
+    // =====================================================
+
+    loadProducts(0);
+
+
+</script>
+
+
+</body>
+
+</html>
