@@ -1,0 +1,39 @@
+name: Build and Test Microservices
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  build-and-test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build and test Product Service
+        working-directory: product-service
+        run: mvn --batch-mode verify
+
+      - name: Build and test Inventory Service
+        working-directory: inventory-service
+        run: mvn --batch-mode verify
+
+      - name: Build and test Order Service
+        working-directory: order-service
+        run: mvn --batch-mode verify
