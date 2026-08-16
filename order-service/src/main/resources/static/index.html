@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>Order Management</title>
+
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        h1 {
+            color: #1f2937;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #374151;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        input {
+            padding: 10px;
+            width: 180px;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            font-size: 15px;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            background: #2563eb;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .success-button {
+            background: #15803d;
+        }
+
+        .danger-button {
+            background: #dc2626;
+        }
+
+        .secondary-button {
+            background: #6b7280;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+
+        th {
+            background: #f3f4f6;
+        }
+
+        .created {
+            color: #d97706;
+            font-weight: bold;
+        }
+
+        .confirmed {
+            color: #15803d;
+            font-weight: bold;
+        }
+
+        .cancelled {
+            color: #dc2626;
+            font-weight: bold;
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .success-message {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+    <h1>Order Management System</h1>
+
+
+    <!-- CREATE ORDER -->
+
+    <div class="card">
+
+        <h2>Create Order</h2>
+
+        <div class="form-row">
+
+            <div class="field">
+
+                <label>Product ID</label>
+
+                <input
+                    type="number"
+                    id="productId"
+                    placeholder="Product ID">
+
+            </div>
+
+
+            <div class="field">
+
+                <label>Quantity</label>
+
+                <input
+                    type="number"
+                    id="quantity"
+                    placeholder="Quantity">
+
+            </div>
+
+
+            <button onclick="createOrder()">
+
+                Create Order
+
+            </button>
+
+        </div>
+
+
+        <div
+            id="createMessage"
+            class="message">
+        </div>
+
+    </div>
+
+
+    <!-- FIND ORDER -->
+
+    <div class="card">
+
+        <h2>Find Order</h2>
+
+        <div class="form-row">
+
+            <div class="field">
+
+                <label>Order ID</label>
+
+                <input
+                    type="number"
+                    id="orderId"
+                    placeholder="Order ID">
+
+            </div>
+
+
+            <button onclick="getOrder()">
+
+                Find Order
+
+            </button>
+
+
+            <button
+                class="secondary-button"
+                onclick="loadOrders()">
+
+                Refresh Orders
+
+            </button>
+
+        </div>
+
+
+        <div
+            id="findMessage"
+            class="message">
+        </div>
+
+    </div>
+
+
+    <!-- ORDERS -->
+
+    <div class="card">
+
+        <h2>Orders</h2>
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>ID</th>
+
+                    <th>Product</th>
+
+                    <th>Quantity</th>
+
+                    <th>Status</th>
+
+                    <th>Created</th>
+
+                    <th>Action</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="ordersTable">
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<script>
+
+
+    // =====================================================
+    // CREATE ORDER
+    // =====================================================
+
+    async function createOrder() {
+
+        const productId =
+            Number(
+                document.getElementById("productId").value
+            );
+
+
+        const quantity =
+            Number(
+                document.getElementById("quantity").value
+            );
+
+
+        if (!productId || quantity <= 0) {
+
+            showMessage(
+                "createMessage",
+                "Please enter a valid Product ID and Quantity.",
+                false
+            );
+
+            return;
+        }
+
+
+        try {
+
+            const response =
+                await fetch("/orders", {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body: JSON.stringify({
+
+                        productId:
+                            productId,
+
+                        quantity:
+                            quantity
+
+                    })
+
+                });
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                showMessage(
+                    "createMessage",
+                    data.detail ||
+                    data.message ||
+                    "Unable to create order.",
+                    false
+                );
+
+                return;
+            }
+
+
+            showMessage(
+                "createMessage",
+                "Order " +
+                data.id +
+                " created and stock reserved successfully.",
+                true
+            );
+
+
+            document.getElementById(
+                "productId"
+            ).value = "";
+
+
+            document.getElementById(
+                "quantity"
+            ).value = "";
+
+
+            loadOrders();
+
+        }
+
+        catch (error) {
+
+            showMessage(
+                "createMessage",
+                "Unable to connect to Order Service.",
+                false
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // LOAD ORDERS
+    // =====================================================
+
+    async function loadOrders() {
+
+        const table =
+            document.getElementById("ordersTable");
+
+
+        try {
+
+            const response =
+                await fetch("/orders");
+
+
+            const orders =
+                await response.json();
+
+
+            table.innerHTML = "";
+
+
+            orders.forEach(order => {
+
+                const row =
+                    document.createElement("tr");
+
+
+                let statusClass = "";
+
+                if (order.status === "CREATED") {
+
+                    statusClass = "created";
+
+                }
+
+                else if (order.status === "CONFIRMED") {
+
+                    statusClass = "confirmed";
+
+                }
+
+                else if (order.status === "CANCELLED") {
+
+                    statusClass = "cancelled";
+
+                }
+
+
+                let action = "-";
+
+
+                if (order.status === "CREATED") {
+
+                    action = `
+
+                        <button
+                            class="success-button"
+                            onclick="confirmOrder(${order.id})">
+
+                            Confirm
+
+                        </button>
+
+                        <button
+                            class="danger-button"
+                            onclick="cancelOrder(${order.id})">
+
+                            Cancel
+
+                        </button>
+
+                    `;
+
+                }
+
+
+                row.innerHTML = `
+
+                    <td>${order.id}</td>
+
+                    <td>${order.productId}</td>
+
+                    <td>${order.quantity}</td>
+
+                    <td class="${statusClass}">
+
+                        ${order.status}
+
+                    </td>
+
+                    <td>
+
+                        ${order.createdAt || ""}
+
+                    </td>
+
+                    <td>
+
+                        ${action}
+
+                    </td>
+
+                `;
+
+
+                table.appendChild(row);
+
+            });
+
+        }
+
+        catch (error) {
+
+            table.innerHTML =
+
+                "<tr>" +
+                "<td colspan='6'>" +
+                "Unable to load orders." +
+                "</td>" +
+                "</tr>";
+
+        }
+
+    }
+
+
+    // =====================================================
+    // CONFIRM ORDER
+    // =====================================================
+
+    async function confirmOrder(id) {
+
+        if (!confirm(
+            "Confirm Order " + id + "?"
+        )) {
+
+            return;
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/orders/" + id + "/confirm",
+                    {
+                        method: "PUT"
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                alert(
+                    data.detail ||
+                    data.message ||
+                    "Unable to confirm order."
+                );
+
+                return;
+            }
+
+
+            alert(
+                "Order " +
+                id +
+                " confirmed successfully."
+            );
+
+
+            loadOrders();
+
+        }
+
+        catch (error) {
+
+            alert(
+                "Unable to connect to Order Service."
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // CANCEL ORDER
+    // =====================================================
+
+    async function cancelOrder(id) {
+
+        if (!confirm(
+            "Cancel Order " + id + "?"
+        )) {
+
+            return;
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/orders/" + id,
+                    {
+                        method: "DELETE"
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                alert(
+                    data.detail ||
+                    data.message ||
+                    "Unable to cancel order."
+                );
+
+                return;
+            }
+
+
+            alert(
+                "Order " +
+                id +
+                " cancelled and reserved stock released."
+            );
+
+
+            loadOrders();
+
+        }
+
+        catch (error) {
+
+            alert(
+                "Unable to connect to Order Service."
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // GET ORDER
+    // =====================================================
+
+    async function getOrder() {
+
+        const id =
+            document.getElementById(
+                "orderId"
+            ).value;
+
+
+        if (!id) {
+
+            showMessage(
+                "findMessage",
+                "Please enter an Order ID.",
+                false
+            );
+
+            return;
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/orders/" + id
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                showMessage(
+                    "findMessage",
+                    "Order not found.",
+                    false
+                );
+
+                return;
+            }
+
+
+            showMessage(
+                "findMessage",
+                "Order " +
+                data.id +
+                " | Product: " +
+                data.productId +
+                " | Quantity: " +
+                data.quantity +
+                " | Status: " +
+                data.status,
+                true
+            );
+
+        }
+
+        catch (error) {
+
+            showMessage(
+                "findMessage",
+                "Unable to connect to Order Service.",
+                false
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // MESSAGE
+    // =====================================================
+
+    function showMessage(
+        elementId,
+        text,
+        success
+    ) {
+
+        const element =
+            document.getElementById(elementId);
+
+
+        element.style.display =
+            "block";
+
+
+        element.className =
+            success
+            ? "message success-message"
+            : "message error-message";
+
+
+        element.innerText =
+            text;
+
+    }
+
+
+    // =====================================================
+    // INITIAL LOAD
+    // =====================================================
+
+    window.onload =
+        function() {
+
+            loadOrders();
+
+        };
+
+
+</script>
+
+</body>
+
+</html>

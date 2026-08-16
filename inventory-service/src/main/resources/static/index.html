@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Inventory Management</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        h1 {
+            color: #1f2937;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #374151;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #374151;
+        }
+
+        input {
+            padding: 10px;
+            width: 170px;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            font-size: 15px;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            background: #2563eb;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .secondary {
+            background: #6b7280;
+        }
+
+        .warning {
+            background: #d97706;
+        }
+
+        .success {
+            background: #15803d;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+
+        th {
+            background: #f3f4f6;
+        }
+
+        .low-stock {
+            color: #dc2626;
+            font-weight: bold;
+        }
+
+        .normal-stock {
+            color: #15803d;
+            font-weight: bold;
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .message-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .message-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Inventory Management System</h1>
+
+
+    <!-- ADD / UPDATE STOCK -->
+
+    <div class="card">
+
+        <h2>Manage Inventory</h2>
+
+        <div class="form-row">
+
+            <div class="field">
+
+                <label>Product ID</label>
+
+                <input
+                    type="number"
+                    id="productId"
+                    placeholder="Product ID">
+
+            </div>
+
+
+            <div class="field">
+
+                <label>Available Stock</label>
+
+                <input
+                    type="number"
+                    id="availableStock"
+                    placeholder="Available Stock">
+
+            </div>
+
+
+            <div class="field">
+
+                <label>Reorder Level</label>
+
+                <input
+                    type="number"
+                    id="reorderLevel"
+                    placeholder="Reorder Level">
+
+            </div>
+
+
+            <button onclick="saveInventory()">
+                Save Inventory
+            </button>
+
+
+            <button
+                class="secondary"
+                onclick="loadInventory()">
+
+                Refresh
+
+            </button>
+
+        </div>
+
+
+        <div
+            id="message"
+            class="message">
+        </div>
+
+    </div>
+
+
+    <!-- INVENTORY TABLE -->
+
+    <div class="card">
+
+        <h2>Current Inventory</h2>
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>ID</th>
+
+                    <th>Product ID</th>
+
+                    <th>Available</th>
+
+                    <th>Reserved</th>
+
+                    <th>Reorder Level</th>
+
+                    <th>Status</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="inventoryTable">
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- LOW STOCK -->
+
+    <div class="card">
+
+        <h2>Low Stock</h2>
+
+        <button
+            class="warning"
+            onclick="loadLowStock()">
+
+            Check Low Stock
+
+        </button>
+
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>ID</th>
+
+                    <th>Product ID</th>
+
+                    <th>Available</th>
+
+                    <th>Reorder Level</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="lowStockTable">
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<script>
+
+
+    // =====================================================
+    // LOAD INVENTORY
+    // =====================================================
+
+    async function loadInventory() {
+
+        const table =
+            document.getElementById("inventoryTable");
+
+
+        try {
+
+            const response =
+                await fetch("/inventory");
+
+
+            const inventory =
+                await response.json();
+
+
+            table.innerHTML = "";
+
+
+            inventory.forEach(item => {
+
+                const row =
+                    document.createElement("tr");
+
+
+                const lowStock =
+                    item.availableStock <= item.reorderLevel;
+
+
+                row.innerHTML = `
+
+                    <td>${item.id}</td>
+
+                    <td>${item.productId}</td>
+
+                    <td>${item.availableStock}</td>
+
+                    <td>${item.reservedStock}</td>
+
+                    <td>${item.reorderLevel}</td>
+
+                    <td class="${
+                        lowStock
+                        ? "low-stock"
+                        : "normal-stock"
+                    }">
+
+                        ${
+                            lowStock
+                            ? "LOW STOCK"
+                            : "AVAILABLE"
+                        }
+
+                    </td>
+
+                `;
+
+
+                table.appendChild(row);
+
+            });
+
+        }
+
+        catch (error) {
+
+            table.innerHTML =
+                "<tr><td colspan='6'>Unable to load inventory.</td></tr>";
+
+        }
+
+    }
+
+
+    // =====================================================
+    // SAVE INVENTORY
+    // =====================================================
+
+    async function saveInventory() {
+
+        const productId =
+            Number(
+                document.getElementById("productId").value
+            );
+
+
+        const availableStock =
+            Number(
+                document.getElementById("availableStock").value
+            );
+
+
+        const reorderLevel =
+            Number(
+                document.getElementById("reorderLevel").value
+            );
+
+
+        const message =
+            document.getElementById("message");
+
+
+        if (!productId ||
+            availableStock < 0 ||
+            reorderLevel < 0) {
+
+            showMessage(
+                "Please enter valid inventory details.",
+                false
+            );
+
+            return;
+        }
+
+
+        try {
+
+            /*
+             * Check whether inventory already exists
+             * for this product.
+             */
+
+            const checkResponse =
+                await fetch(
+                    "/inventory/product/" + productId
+                );
+
+
+            let method;
+            let url;
+
+
+            if (checkResponse.ok) {
+
+                const existing =
+                    await checkResponse.json();
+
+
+                method = "PUT";
+
+                url =
+                    "/inventory/" + existing.id;
+
+            }
+
+            else {
+
+                method = "POST";
+
+                url = "/inventory";
+
+            }
+
+
+            const response =
+                await fetch(url, {
+
+                    method: method,
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        productId:
+                            productId,
+
+                        availableStock:
+                            availableStock,
+
+                        reservedStock:
+                            0,
+
+                        reorderLevel:
+                            reorderLevel
+
+                    })
+
+                });
+
+
+            if (!response.ok) {
+
+                showMessage(
+                    "Unable to save inventory.",
+                    false
+                );
+
+                return;
+            }
+
+
+            showMessage(
+                "Inventory saved successfully.",
+                true
+            );
+
+
+            loadInventory();
+
+        }
+
+        catch (error) {
+
+            showMessage(
+                "Unable to connect to Inventory Service.",
+                false
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // LOW STOCK
+    // =====================================================
+
+    async function loadLowStock() {
+
+        const table =
+            document.getElementById("lowStockTable");
+
+
+        try {
+
+            const response =
+                await fetch("/inventory/low-stock");
+
+
+            const inventory =
+                await response.json();
+
+
+            table.innerHTML = "";
+
+
+            inventory.forEach(item => {
+
+                const row =
+                    document.createElement("tr");
+
+
+                row.innerHTML = `
+
+                    <td>${item.id}</td>
+
+                    <td>${item.productId}</td>
+
+                    <td>${item.availableStock}</td>
+
+                    <td>${item.reorderLevel}</td>
+
+                `;
+
+
+                table.appendChild(row);
+
+            });
+
+        }
+
+        catch (error) {
+
+            table.innerHTML =
+                "<tr><td colspan='4'>Unable to load low-stock information.</td></tr>";
+
+        }
+
+    }
+
+
+    // =====================================================
+    // MESSAGE
+    // =====================================================
+
+    function showMessage(text, success) {
+
+        const message =
+            document.getElementById("message");
+
+
+        message.style.display = "block";
+
+
+        message.className =
+            success
+            ? "message message-success"
+            : "message message-error";
+
+
+        message.innerText = text;
+
+    }
+
+
+    // =====================================================
+    // PAGE LOAD
+    // =====================================================
+
+    window.onload = function() {
+
+        loadInventory();
+
+    };
+
+
+</script>
+
+</body>
+</html>
