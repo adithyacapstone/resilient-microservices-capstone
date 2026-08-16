@@ -23,7 +23,7 @@ public class OrderService {
         this.orderRepository = orderRepository;
 
         this.restClient = RestClient.builder()
-                .baseUrl("http://localhost:8081")
+        		.baseUrl("http://inventory-service:8081")
                 .build();
     }
 
