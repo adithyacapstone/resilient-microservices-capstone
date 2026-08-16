@@ -18,9 +18,9 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: productdb
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: productdb
         ports:
           - 5432:5432
         options: >-
@@ -40,6 +40,11 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
+
+      - name: Create additional databases
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d productdb -c "CREATE DATABASE inventorydb;"
+          PGPASSWORD=postgres psql -h localhost -U postgres -d productdb -c "CREATE DATABASE orderdb;"
 
       - name: Build and test Product Service
         working-directory: product-service
