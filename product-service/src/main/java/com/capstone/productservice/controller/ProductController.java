@@ -2,14 +2,9 @@ package com.capstone.productservice.controller;
 
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import com.capstone.productservice.dto.ProductCreateRequest;
 import com.capstone.productservice.dto.ProductInventoryResponse;
 import com.capstone.productservice.Product;
 import com.capstone.productservice.service.ProductService;
@@ -24,37 +19,27 @@ public class ProductController {
     public ProductController(
             ProductService productService) {
 
-        this.productService =
-                productService;
+        this.productService = productService;
     }
 
 
     // =====================================================
-    // GET - PRODUCTS
-    // Pagination + Sorting
+    // GET PRODUCTS
     // =====================================================
 
     @GetMapping("/products")
     public Page<Product> getProducts(
 
-            @RequestParam(
-                    defaultValue = "0"
-            )
+            @RequestParam(defaultValue = "0")
             int page,
 
-            @RequestParam(
-                    defaultValue = "10"
-            )
+            @RequestParam(defaultValue = "10")
             int size,
 
-            @RequestParam(
-                    defaultValue = "id"
-            )
+            @RequestParam(defaultValue = "id")
             String sortBy,
 
-            @RequestParam(
-                    defaultValue = "asc"
-            )
+            @RequestParam(defaultValue = "asc")
             String direction) {
 
         return productService.getProducts(
@@ -67,7 +52,7 @@ public class ProductController {
 
 
     // =====================================================
-    // SEARCH - ALL FIELDS / NAME / PRICE / QUANTITY
+    // SEARCH PRODUCTS
     // =====================================================
 
     @GetMapping("/products/search")
@@ -77,24 +62,16 @@ public class ProductController {
 
             @RequestParam String value,
 
-            @RequestParam(
-                    defaultValue = "0"
-            )
+            @RequestParam(defaultValue = "0")
             int page,
 
-            @RequestParam(
-                    defaultValue = "10"
-            )
+            @RequestParam(defaultValue = "10")
             int size,
 
-            @RequestParam(
-                    defaultValue = "id"
-            )
+            @RequestParam(defaultValue = "id")
             String sortBy,
 
-            @RequestParam(
-                    defaultValue = "asc"
-            )
+            @RequestParam(defaultValue = "asc")
             String direction) {
 
         return productService.searchProducts(
@@ -109,34 +86,32 @@ public class ProductController {
 
 
     // =====================================================
-    // GET - PRODUCT BY ID
+    // GET PRODUCT BY ID
     // =====================================================
 
     @GetMapping("/products/{id}")
     public Product getProductById(
             @PathVariable Long id) {
 
-        return productService
-                .getProductById(id);
+        return productService.getProductById(id);
     }
 
 
     // =====================================================
-    // POST - ADD PRODUCT
+    // ADD PRODUCT + INITIAL STOCK
     // =====================================================
 
     @PostMapping("/products")
     public Product addProduct(
             @Valid
-            @RequestBody Product product) {
+            @RequestBody ProductCreateRequest request) {
 
-        return productService
-                .addProduct(product);
+        return productService.addProduct(request);
     }
 
 
     // =====================================================
-    // PUT - UPDATE PRODUCT
+    // UPDATE PRODUCT DETAILS
     // =====================================================
 
     @PutMapping("/products/{id}")
@@ -147,16 +122,33 @@ public class ProductController {
             @Valid
             @RequestBody Product product) {
 
-        return productService
-                .updateProduct(
-                        id,
-                        product
-                );
+        return productService.updateProduct(
+                id,
+                product
+        );
     }
 
 
     // =====================================================
-    // DELETE - DELETE PRODUCT
+    // RECEIVE ADDITIONAL STOCK
+    // =====================================================
+
+    @PutMapping("/products/{id}/receive-stock")
+    public String receiveStock(
+
+            @PathVariable Long id,
+
+            @RequestParam int quantity) {
+
+        return productService.receiveStock(
+                id,
+                quantity
+        );
+    }
+
+
+    // =====================================================
+    // DELETE PRODUCT
     // =====================================================
 
     @DeleteMapping("/products/{id}")
@@ -169,9 +161,11 @@ public class ProductController {
                 .noContent()
                 .build();
     }
- // =====================================================
- // GET INVENTORY FOR PRODUCT
- // =====================================================
+
+
+    // =====================================================
+    // GET INVENTORY FOR PRODUCT
+    // =====================================================
 
     @GetMapping("/products/{id}/inventory")
     public String getInventory(
@@ -179,15 +173,17 @@ public class ProductController {
 
         return productService.getInventory(id);
     }
- // =====================================================
- // GET PRODUCT + INVENTORY DETAILS
- // =====================================================
 
- @GetMapping("/products/{id}/details")
- public ProductInventoryResponse getProductInventoryDetails(
-         @PathVariable Long id) {
 
-     return productService
-             .getProductInventoryDetails(id);
- }
+    // =====================================================
+    // GET PRODUCT + INVENTORY DETAILS
+    // =====================================================
+
+    @GetMapping("/products/{id}/details")
+    public ProductInventoryResponse getProductInventoryDetails(
+            @PathVariable Long id) {
+
+        return productService
+                .getProductInventoryDetails(id);
+    }
 }

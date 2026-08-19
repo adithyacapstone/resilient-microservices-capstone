@@ -60,12 +60,19 @@
             margin-bottom: 6px;
         }
 
-        input {
+        input,
+        select {
             padding: 10px;
-            width: 180px;
+            width: 220px;
             border: 1px solid #d1d5db;
             border-radius: 5px;
             font-size: 15px;
+            box-sizing: border-box;
+            background: white;
+        }
+
+        select {
+            cursor: pointer;
         }
 
         button {
@@ -165,12 +172,15 @@
 
             <div class="field">
 
-                <label>Product ID</label>
+                <label>Product</label>
 
-                <input
-                    type="number"
-                    id="productId"
-                    placeholder="Product ID">
+                <select id="productId">
+
+                    <option value="">
+                        Loading products...
+                    </option>
+
+                </select>
 
             </div>
 
@@ -182,6 +192,8 @@
                 <input
                     type="number"
                     id="quantity"
+                    min="1"
+                    step="1"
                     placeholder="Quantity">
 
             </div>
@@ -294,10 +306,159 @@
 
 
     // =====================================================
+    // SERVICE URLS
+    // =====================================================
+
+    const INVENTORY_API_URL =
+        "/orders/available-products";
+
+
+    // =====================================================
+    // LOAD AVAILABLE PRODUCTS FROM INVENTORY
+    // =====================================================
+
+    async function loadAvailableProducts() {
+
+        const productSelect =
+            document.getElementById("productId");
+
+
+        productSelect.innerHTML =
+            '<option value="">Loading products...</option>';
+
+
+        try {
+
+            const response =
+                await fetch(INVENTORY_API_URL);
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Unable to load inventory."
+                );
+
+            }
+
+
+            const data =
+                await response.json();
+
+
+            /*
+             * Inventory API may return either:
+             *
+             * 1. A simple array
+             *
+             * OR
+             *
+             * 2. A Spring Page object containing
+             *    a "content" array.
+             */
+
+            const inventoryList =
+                Array.isArray(data)
+                    ? data
+                    : (data.content || []);
+
+
+            productSelect.innerHTML =
+                '<option value="">Select Product</option>';
+
+
+            let availableCount = 0;
+
+
+            inventoryList.forEach(
+                inventory => {
+
+                    const productId =
+                        inventory.productId;
+
+
+                    const availableStock =
+                        Number(
+                            inventory.availableStock
+                        );
+
+
+                    /*
+                     * Only show products that
+                     * currently have stock.
+                     */
+
+                    if (
+                        productId !== undefined &&
+                        availableStock > 0
+                    ) {
+
+                        const option =
+                            document.createElement("option");
+
+
+                        option.value =
+                            productId;
+
+
+                        option.textContent =
+                            "Product " +
+                            productId +
+                            " - Available: " +
+                            availableStock;
+
+
+                        productSelect.appendChild(
+                            option
+                        );
+
+
+                        availableCount++;
+
+                    }
+
+                }
+            );
+
+
+            if (availableCount === 0) {
+
+                productSelect.innerHTML =
+                    '<option value="">No products available</option>';
+
+            }
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Inventory loading error:",
+                error
+            );
+
+
+            productSelect.innerHTML =
+                '<option value="">Unable to load products</option>';
+
+
+            showMessage(
+                "createMessage",
+                "Unable to load products from Inventory Service.",
+                false
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
     // CREATE ORDER
     // =====================================================
 
     async function createOrder() {
+
 
         const productId =
             Number(
@@ -311,19 +472,25 @@
             );
 
 
-        if (!productId || quantity <= 0) {
+        if (
+            !productId ||
+            !Number.isInteger(quantity) ||
+            quantity <= 0
+        ) {
 
             showMessage(
                 "createMessage",
-                "Please enter a valid Product ID and Quantity.",
+                "Please select a Product and enter a valid Quantity.",
                 false
             );
 
             return;
+
         }
 
 
         try {
+
 
             const response =
                 await fetch("/orders", {
@@ -358,22 +525,29 @@
 
                 showMessage(
                     "createMessage",
+
                     data.detail ||
                     data.message ||
                     "Unable to create order.",
+
                     false
                 );
 
                 return;
+
             }
 
 
             showMessage(
+
                 "createMessage",
+
                 "Order " +
                 data.id +
                 " created and stock reserved successfully.",
+
                 true
+
             );
 
 
@@ -389,9 +563,25 @@
 
             loadOrders();
 
+
+            /*
+             * Refresh inventory dropdown because
+             * available stock has changed after
+             * reservation.
+             */
+
+            loadAvailableProducts();
+
         }
 
+
         catch (error) {
+
+            console.error(
+                "Create order error:",
+                error
+            );
+
 
             showMessage(
                 "createMessage",
@@ -410,14 +600,25 @@
 
     async function loadOrders() {
 
+
         const table =
             document.getElementById("ordersTable");
 
 
         try {
 
+
             const response =
                 await fetch("/orders");
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Unable to load orders."
+                );
+
+            }
 
 
             const orders =
@@ -427,104 +628,138 @@
             table.innerHTML = "";
 
 
-            orders.forEach(order => {
-
-                const row =
-                    document.createElement("tr");
+            orders.forEach(
+                order => {
 
 
-                let statusClass = "";
-
-                if (order.status === "CREATED") {
-
-                    statusClass = "created";
-
-                }
-
-                else if (order.status === "CONFIRMED") {
-
-                    statusClass = "confirmed";
-
-                }
-
-                else if (order.status === "CANCELLED") {
-
-                    statusClass = "cancelled";
-
-                }
+                    const row =
+                        document.createElement("tr");
 
 
-                let action = "-";
+                    let statusClass = "";
 
 
-                if (order.status === "CREATED") {
+                    if (
+                        order.status === "CREATED"
+                    ) {
 
-                    action = `
+                        statusClass =
+                            "created";
 
-                        <button
-                            class="success-button"
-                            onclick="confirmOrder(${order.id})">
+                    }
 
-                            Confirm
 
-                        </button>
+                    else if (
+                        order.status === "CONFIRMED"
+                    ) {
 
-                        <button
-                            class="danger-button"
-                            onclick="cancelOrder(${order.id})">
+                        statusClass =
+                            "confirmed";
 
-                            Cancel
+                    }
 
-                        </button>
+
+                    else if (
+                        order.status === "CANCELLED"
+                    ) {
+
+                        statusClass =
+                            "cancelled";
+
+                    }
+
+
+                    let action = "-";
+
+
+                    if (
+                        order.status === "CREATED"
+                    ) {
+
+                        action = `
+
+                            <button
+                                class="success-button"
+                                onclick="confirmOrder(${order.id})">
+
+                                Confirm
+
+                            </button>
+
+                            <button
+                                class="danger-button"
+                                onclick="cancelOrder(${order.id})">
+
+                                Cancel
+
+                            </button>
+
+                        `;
+
+                    }
+
+
+                    row.innerHTML = `
+
+                        <td>
+                            ${order.id}
+                        </td>
+
+                        <td>
+                            ${order.productId}
+                        </td>
+
+                        <td>
+                            ${order.quantity}
+                        </td>
+
+                        <td class="${statusClass}">
+
+                            ${order.status}
+
+                        </td>
+
+                        <td>
+
+                            ${order.createdAt || ""}
+
+                        </td>
+
+                        <td>
+
+                            ${action}
+
+                        </td>
 
                     `;
 
+
+                    table.appendChild(row);
+
                 }
-
-
-                row.innerHTML = `
-
-                    <td>${order.id}</td>
-
-                    <td>${order.productId}</td>
-
-                    <td>${order.quantity}</td>
-
-                    <td class="${statusClass}">
-
-                        ${order.status}
-
-                    </td>
-
-                    <td>
-
-                        ${order.createdAt || ""}
-
-                    </td>
-
-                    <td>
-
-                        ${action}
-
-                    </td>
-
-                `;
-
-
-                table.appendChild(row);
-
-            });
+            );
 
         }
 
+
         catch (error) {
+
+            console.error(
+                "Load orders error:",
+                error
+            );
+
 
             table.innerHTML =
 
                 "<tr>" +
+
                 "<td colspan='6'>" +
+
                 "Unable to load orders." +
+
                 "</td>" +
+
                 "</tr>";
 
         }
@@ -538,15 +773,22 @@
 
     async function confirmOrder(id) {
 
-        if (!confirm(
-            "Confirm Order " + id + "?"
-        )) {
+
+        if (
+            !confirm(
+                "Confirm Order " +
+                id +
+                "?"
+            )
+        ) {
 
             return;
+
         }
 
 
         try {
+
 
             const response =
                 await fetch(
@@ -570,6 +812,7 @@
                 );
 
                 return;
+
             }
 
 
@@ -582,7 +825,16 @@
 
             loadOrders();
 
+
+            /*
+             * Refresh available stock after
+             * confirmation.
+             */
+
+            loadAvailableProducts();
+
         }
+
 
         catch (error) {
 
@@ -601,15 +853,22 @@
 
     async function cancelOrder(id) {
 
-        if (!confirm(
-            "Cancel Order " + id + "?"
-        )) {
+
+        if (
+            !confirm(
+                "Cancel Order " +
+                id +
+                "?"
+            )
+        ) {
 
             return;
+
         }
 
 
         try {
+
 
             const response =
                 await fetch(
@@ -633,6 +892,7 @@
                 );
 
                 return;
+
             }
 
 
@@ -645,7 +905,16 @@
 
             loadOrders();
 
+
+            /*
+             * Refresh available stock because
+             * cancellation releases reserved stock.
+             */
+
+            loadAvailableProducts();
+
         }
+
 
         catch (error) {
 
@@ -664,6 +933,7 @@
 
     async function getOrder() {
 
+
         const id =
             document.getElementById(
                 "orderId"
@@ -679,10 +949,12 @@
             );
 
             return;
+
         }
 
 
         try {
+
 
             const response =
                 await fetch(
@@ -703,11 +975,14 @@
                 );
 
                 return;
+
             }
 
 
             showMessage(
+
                 "findMessage",
+
                 "Order " +
                 data.id +
                 " | Product: " +
@@ -716,10 +991,13 @@
                 data.quantity +
                 " | Status: " +
                 data.status,
+
                 true
+
             );
 
         }
+
 
         catch (error) {
 
@@ -744,8 +1022,11 @@
         success
     ) {
 
+
         const element =
-            document.getElementById(elementId);
+            document.getElementById(
+                elementId
+            );
 
 
         element.style.display =
@@ -754,8 +1035,8 @@
 
         element.className =
             success
-            ? "message success-message"
-            : "message error-message";
+                ? "message success-message"
+                : "message error-message";
 
 
         element.innerText =
@@ -772,6 +1053,8 @@
         function() {
 
             loadOrders();
+
+            loadAvailableProducts();
 
         };
 

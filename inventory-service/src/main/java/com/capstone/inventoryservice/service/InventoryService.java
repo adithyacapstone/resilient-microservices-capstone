@@ -3,17 +3,20 @@ package com.capstone.inventoryservice.service;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
-import com.capstone.inventoryservice.InventoryNotFoundException;
+
 import com.capstone.inventoryservice.Inventory;
-import com.capstone.inventoryservice.repository.InventoryRepository;
+import com.capstone.inventoryservice.InventoryNotFoundException;
 import com.capstone.inventoryservice.InsufficientStockException;
+import com.capstone.inventoryservice.repository.InventoryRepository;
 
 @Service
 public class InventoryService {
 
     private final InventoryRepository inventoryRepository;
 
-    public InventoryService(InventoryRepository inventoryRepository) {
+    public InventoryService(
+            InventoryRepository inventoryRepository) {
+
         this.inventoryRepository = inventoryRepository;
     }
 
@@ -120,127 +123,184 @@ public class InventoryService {
 
         inventoryRepository.delete(inventory);
     }
- // =====================================================
- // RESERVE STOCK
- // =====================================================
 
- public Inventory reserveStock(
-         Long productId,
-         int quantity) {
 
-     Inventory inventory =
-             getInventoryByProductId(productId);
+    // =====================================================
+    // RECEIVE ADDITIONAL STOCK
+    // =====================================================
 
-     if (quantity <= 0) {
-         throw new InsufficientStockException(
-                 "Quantity must be greater than 0"
-         );
-     }
+    public Inventory receiveStock(
+            Long productId,
+            int quantity) {
 
-     if (inventory.getAvailableStock() < quantity) {
-         throw new InsufficientStockException(
-                 "Insufficient available stock"
-         );
-     }
+        Inventory inventory =
+                getInventoryByProductId(productId);
 
-     inventory.setAvailableStock(
-             inventory.getAvailableStock() - quantity
-     );
+        if (quantity <= 0) {
 
-     inventory.setReservedStock(
-             inventory.getReservedStock() + quantity
-     );
+            throw new RuntimeException(
+                    "Quantity received must be greater than 0"
+            );
+        }
 
-     return inventoryRepository.save(inventory);
- }
-//=====================================================
-//RELEASE RESERVED STOCK
-//=====================================================
+        inventory.setAvailableStock(
+                inventory.getAvailableStock()
+                + quantity
+        );
 
-public Inventory releaseStock(
-      Long productId,
-      int quantity) {
+        return inventoryRepository.save(
+                inventory
+        );
+    }
 
-  Inventory inventory =
-          getInventoryByProductId(productId);
 
-  if (quantity <= 0) {
-      throw new RuntimeException(
-              "Quantity must be greater than 0"
-      );
-  }
+    // =====================================================
+    // RESERVE STOCK
+    // =====================================================
 
-  if (inventory.getReservedStock() < quantity) {
-      throw new RuntimeException(
-              "Insufficient reserved stock"
-      );
-  }
+    public Inventory reserveStock(
+            Long productId,
+            int quantity) {
 
-  inventory.setReservedStock(
-          inventory.getReservedStock() - quantity
-  );
+        Inventory inventory =
+                getInventoryByProductId(productId);
 
-  inventory.setAvailableStock(
-          inventory.getAvailableStock() + quantity
-  );
+        if (quantity <= 0) {
 
-  return inventoryRepository.save(inventory);
-}
-//=====================================================
-//CONFIRM / CONSUME RESERVED STOCK
-//=====================================================
+            throw new InsufficientStockException(
+                    "Quantity must be greater than 0"
+            );
+        }
 
-public Inventory confirmStock(
-     Long productId,
-     int quantity) {
+        if (inventory.getAvailableStock() < quantity) {
 
- Inventory inventory =
-         getInventoryByProductId(productId);
+            throw new InsufficientStockException(
+                    "Insufficient available stock"
+            );
+        }
 
- if (quantity <= 0) {
-     throw new RuntimeException(
-             "Quantity must be greater than 0"
-     );
- }
+        inventory.setAvailableStock(
+                inventory.getAvailableStock()
+                - quantity
+        );
 
- if (inventory.getReservedStock() < quantity) {
-     throw new RuntimeException(
-             "Insufficient reserved stock"
-     );
- }
+        inventory.setReservedStock(
+                inventory.getReservedStock()
+                + quantity
+        );
 
- inventory.setReservedStock(
-         inventory.getReservedStock() - quantity
- );
+        return inventoryRepository.save(
+                inventory
+        );
+    }
 
- return inventoryRepository.save(inventory);
-}
-//=====================================================
-//CHECK LOW STOCK
-//=====================================================
 
-public boolean isLowStock(Long productId) {
+    // =====================================================
+    // RELEASE RESERVED STOCK
+    // =====================================================
 
- Inventory inventory =
-         getInventoryByProductId(productId);
+    public Inventory releaseStock(
+            Long productId,
+            int quantity) {
 
- return inventory.getAvailableStock()
-         < inventory.getReorderLevel();
-}
-//=====================================================
-//GET ALL LOW-STOCK INVENTORY
-//=====================================================
+        Inventory inventory =
+                getInventoryByProductId(productId);
 
-public List<Inventory> getLowStockInventory() {
+        if (quantity <= 0) {
 
- List<Inventory> allInventory =
-         inventoryRepository.findAll();
+            throw new RuntimeException(
+                    "Quantity must be greater than 0"
+            );
+        }
 
- return allInventory.stream()
-         .filter(inventory ->
-                 inventory.getAvailableStock()
-                 < inventory.getReorderLevel()
-         )
-         .toList();
-}
+        if (inventory.getReservedStock() < quantity) {
+
+            throw new RuntimeException(
+                    "Insufficient reserved stock"
+            );
+        }
+
+        inventory.setReservedStock(
+                inventory.getReservedStock()
+                - quantity
+        );
+
+        inventory.setAvailableStock(
+                inventory.getAvailableStock()
+                + quantity
+        );
+
+        return inventoryRepository.save(
+                inventory
+        );
+    }
+
+
+    // =====================================================
+    // CONFIRM / CONSUME RESERVED STOCK
+    // =====================================================
+
+    public Inventory confirmStock(
+            Long productId,
+            int quantity) {
+
+        Inventory inventory =
+                getInventoryByProductId(productId);
+
+        if (quantity <= 0) {
+
+            throw new RuntimeException(
+                    "Quantity must be greater than 0"
+            );
+        }
+
+        if (inventory.getReservedStock() < quantity) {
+
+            throw new RuntimeException(
+                    "Insufficient reserved stock"
+            );
+        }
+
+        inventory.setReservedStock(
+                inventory.getReservedStock()
+                - quantity
+        );
+
+        return inventoryRepository.save(
+                inventory
+        );
+    }
+
+
+    // =====================================================
+    // CHECK LOW STOCK
+    // =====================================================
+
+    public boolean isLowStock(
+            Long productId) {
+
+        Inventory inventory =
+                getInventoryByProductId(productId);
+
+        return inventory.getAvailableStock()
+                < inventory.getReorderLevel();
+    }
+
+
+    // =====================================================
+    // GET ALL LOW-STOCK INVENTORY
+    // =====================================================
+
+    public List<Inventory> getLowStockInventory() {
+
+        List<Inventory> allInventory =
+                inventoryRepository.findAll();
+
+        return allInventory.stream()
+                .filter(inventory ->
+                        inventory.getAvailableStock()
+                        < inventory.getReorderLevel()
+                )
+                .toList();
+    }
 }

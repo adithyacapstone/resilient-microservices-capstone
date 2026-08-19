@@ -211,8 +211,7 @@
             color: #991b1b;
         }
 
-
-        /* EDIT MODAL */
+        /* MODALS */
 
         .modal {
             display: none;
@@ -222,9 +221,11 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(15, 23, 42, 0.65);
-            justify-content: center;
+            background: rgba(0,0,0,0.45);
             align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+            padding: 20px;
         }
 
         .modal-content {
@@ -276,7 +277,6 @@
             color: #475569;
             margin-bottom: 20px;
         }
-
 
         @media (max-width: 800px) {
 
@@ -332,57 +332,71 @@
 
     <div class="card">
 
-        <h2>
-            Add Product
-        </h2>
-
+        <h2>Add New Product</h2>
 
         <div class="form-row">
 
-
             <div>
-
-                <label>
-                    Product Name
-                </label>
-
+                <label>Product Name</label>
                 <input
                     type="text"
                     id="name"
                     placeholder="Enter product name">
-
             </div>
 
+            <div>
+                <label>SKU</label>
+                <input
+                    type="text"
+                    id="sku"
+                    placeholder="Example: LAP-DELL-001">
+            </div>
 
             <div>
+                <label>Category</label>
+                <input
+                    type="text"
+                    id="category"
+                    placeholder="Example: Electronics">
+            </div>
 
-                <label>
-                    Price
-                </label>
+        </div>
 
+
+        <div class="form-row">
+
+            <div>
+                <label>Price</label>
                 <input
                     type="number"
                     id="price"
                     placeholder="Enter price"
                     min="0.01"
                     step="0.01">
-
             </div>
-
 
             <div>
-
-                <label>
-                    Quantity
-                </label>
-
+                <label>Initial Quantity Received</label>
                 <input
                     type="number"
-                    id="quantity"
-                    placeholder="Enter quantity"
+                    id="initialQuantity"
+                    placeholder="Warehouse quantity"
                     min="0">
-
             </div>
+
+            <div></div>
+
+        </div>
+
+
+        <div>
+
+            <label>Description</label>
+
+            <input
+                type="text"
+                id="description"
+                placeholder="Enter product description">
 
         </div>
 
@@ -392,9 +406,7 @@
             <button
                 class="primary"
                 onclick="addProduct()">
-
                 Add Product
-
             </button>
 
         </div>
@@ -403,17 +415,14 @@
         <div
             id="message"
             class="message">
-
         </div>
 
     </div>
 
 
-
     <!-- PRODUCTS -->
 
     <div class="card">
-
 
         <h2>
             Products
@@ -423,7 +432,6 @@
         <!-- SEARCH -->
 
         <div class="search-row">
-
 
             <select id="searchField">
 
@@ -443,8 +451,12 @@
                     Price
                 </option>
 
-                <option value="quantity">
-                    Quantity
+                <option value="sku">
+                    SKU
+                </option>
+
+                <option value="category">
+                    Category
                 </option>
 
             </select>
@@ -460,18 +472,14 @@
             <button
                 class="primary"
                 onclick="searchProducts()">
-
                 Search
-
             </button>
 
 
             <button
                 class="secondary"
                 onclick="clearSearch()">
-
                 Clear
-
             </button>
 
         </div>
@@ -480,17 +488,13 @@
         <div
             id="count"
             class="count">
-
             Loading products...
-
         </div>
-
 
 
         <!-- SORT -->
 
         <div class="sort-row">
-
 
             <label>
                 Sort By:
@@ -513,8 +517,12 @@
                     Price
                 </option>
 
-                <option value="quantity">
-                    Quantity
+                <option value="sku">
+                    SKU
+                </option>
+
+                <option value="category">
+                    Category
                 </option>
 
             </select>
@@ -538,19 +546,15 @@
             <button
                 class="secondary"
                 onclick="refreshProducts()">
-
                 Refresh Products
-
             </button>
 
         </div>
 
 
-
         <!-- TABLE -->
 
         <table>
-
 
             <thead>
 
@@ -565,11 +569,15 @@
                     </th>
 
                     <th>
-                        PRICE
+                        SKU
                     </th>
 
                     <th>
-                        QUANTITY
+                        CATEGORY
+                    </th>
+
+                    <th>
+                        PRICE
                     </th>
 
                     <th>
@@ -583,12 +591,9 @@
 
             <tbody
                 id="productTable">
-
             </tbody>
 
-
         </table>
-
 
 
         <!-- PAGINATION -->
@@ -596,17 +601,16 @@
         <div
             id="pagination"
             class="pagination">
-
         </div>
-
 
     </div>
 
 </div>
 
 
-
-<!-- EDIT MODAL -->
+<!-- ========================================================= -->
+<!-- EDIT PRODUCT MODAL                                        -->
+<!-- ========================================================= -->
 
 <div
     id="editModal"
@@ -660,14 +664,13 @@
         <div class="modal-form-group">
 
             <label>
-                Price
+                SKU
             </label>
 
             <input
-                type="number"
-                id="editPrice"
-                min="0.01"
-                step="0.01">
+                type="text"
+                id="editSku"
+                placeholder="Enter SKU">
 
         </div>
 
@@ -675,13 +678,43 @@
         <div class="modal-form-group">
 
             <label>
-                Quantity
+                Category
+            </label>
+
+            <input
+                type="text"
+                id="editCategory"
+                placeholder="Enter category">
+
+        </div>
+
+
+        <div class="modal-form-group">
+
+            <label>
+                Price
             </label>
 
             <input
                 type="number"
-                id="editQuantity"
-                min="0">
+                id="editPrice"
+                min="0.01"
+                step="0.01"
+                placeholder="Enter price">
+
+        </div>
+
+
+        <div class="modal-form-group">
+
+            <label>
+                Description
+            </label>
+
+            <input
+                type="text"
+                id="editDescription"
+                placeholder="Enter product description">
 
         </div>
 
@@ -689,12 +722,10 @@
         <div
             id="editMessage"
             class="message">
-
         </div>
 
 
         <div class="modal-buttons">
-
 
             <button
                 class="secondary"
@@ -720,6 +751,109 @@
 </div>
 
 
+<!-- ========================================================= -->
+<!-- RECEIVE STOCK MODAL                                      -->
+<!-- ========================================================= -->
+
+<div
+    id="stockModal"
+    class="modal">
+
+
+    <div class="modal-content">
+
+
+        <div class="modal-header">
+
+            <h2>
+                Receive Additional Stock
+            </h2>
+
+            <button
+                class="close-button"
+                onclick="closeStockModal()">
+
+                ×
+
+            </button>
+
+        </div>
+
+
+        <div
+            id="stockProductId"
+            class="product-id-display">
+
+            Product ID:
+
+        </div>
+
+
+        <div class="product-id-display">
+
+            <strong id="stockProductName"></strong>
+
+            <br>
+
+            SKU:
+            <span id="stockProductSku"></span>
+
+            <br>
+
+            Current Available Stock:
+            <strong id="currentStock">
+                Loading...
+            </strong>
+
+        </div>
+
+
+        <div class="modal-form-group">
+
+            <label>
+                Additional Quantity Received
+            </label>
+
+            <input
+                type="number"
+                id="receivedQuantity"
+                min="1"
+                step="1"
+                placeholder="Enter quantity received">
+
+        </div>
+
+
+        <div
+            class="message"
+            id="stockMessage">
+        </div>
+
+
+        <div class="modal-buttons">
+
+            <button
+                class="secondary"
+                onclick="closeStockModal()">
+
+                Cancel
+
+            </button>
+
+            <button
+                class="primary"
+                onclick="receiveStock()">
+
+                Receive Stock
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
 
 <script>
 
@@ -732,6 +866,7 @@
 
     let editingProductId = null;
 
+    let stockProductId = null;
 
 
     // =====================================================
@@ -742,15 +877,14 @@
 
         currentPage = page;
 
+
         const sortBy =
-            document.getElementById(
-                "sortBy"
-            ).value;
+            document.getElementById("sortBy").value;
+
 
         const direction =
-            document.getElementById(
-                "direction"
-            ).value;
+            document.getElementById("direction").value;
+
 
         const url =
             `${API_URL}` +
@@ -759,10 +893,12 @@
             `&sortBy=${sortBy}` +
             `&direction=${direction}`;
 
+
         try {
 
             const response =
                 await fetch(url);
+
 
             if (!response.ok) {
 
@@ -772,8 +908,10 @@
 
             }
 
+
             const data =
                 await response.json();
+
 
             displayProducts(data);
 
@@ -791,7 +929,6 @@
     }
 
 
-
     // =====================================================
     // DISPLAY PRODUCTS
     // =====================================================
@@ -799,9 +936,8 @@
     function displayProducts(data) {
 
         const table =
-            document.getElementById(
-                "productTable"
-            );
+            document.getElementById("productTable");
+
 
         table.innerHTML = "";
 
@@ -816,7 +952,7 @@
                 <tr>
 
                     <td
-                        colspan="5"
+                        colspan="6"
                         style="
                             text-align:center;
                             padding:30px;
@@ -838,9 +974,8 @@
             product => {
 
                 const row =
-                    document.createElement(
-                        "tr"
-                    );
+                    document.createElement("tr");
+
 
                 row.innerHTML = `
 
@@ -850,22 +985,20 @@
 
                     <td>
                         <strong>
-                            ${escapeHtml(
-                                product.name
-                            )}
+                            ${escapeHtml(product.name)}
                         </strong>
                     </td>
 
                     <td>
-                        ₹${Number(
-                            product.price
-                        ).toLocaleString(
-                            "en-IN"
-                        )}
+                        ${escapeHtml(product.sku || "")}
                     </td>
 
                     <td>
-                        ${product.quantity}
+                        ${escapeHtml(product.category || "")}
+                    </td>
+
+                    <td>
+                        ₹${Number(product.price).toLocaleString("en-IN")}
                     </td>
 
                     <td>
@@ -873,22 +1006,28 @@
                         <div class="actions">
 
                             <button
+                                class="primary"
+                                onclick="openStockModal(${product.id})">
+
+                                Receive Stock
+
+                            </button>
+
+
+                            <button
                                 class="edit"
-                                onclick="openEditModal(
-                                    ${product.id}
-                                )">
+                                onclick="openEditModal(${product.id})">
 
                                 Edit
 
                             </button>
 
+
                             <button
                                 class="delete"
                                 onclick="deleteProduct(
                                     ${product.id},
-                                    '${escapeJs(
-                                        product.name
-                                    )}'
+                                    '${escapeJs(product.name)}'
                                 )">
 
                                 Delete
@@ -901,6 +1040,7 @@
 
                 `;
 
+
                 table.appendChild(row);
 
             }
@@ -912,7 +1052,6 @@
         createPagination(data);
 
     }
-
 
 
     // =====================================================
@@ -940,6 +1079,7 @@
             data.size +
             1;
 
+
         const last =
             Math.min(
                 (data.number + 1)
@@ -952,12 +1092,10 @@
         document.getElementById(
             "count"
         ).innerText =
-
-            `Showing ${first}–${last} of `
+            `Showing ${first}-${last} of `
             + `${data.totalElements} products`;
 
     }
-
 
 
     // =====================================================
@@ -970,6 +1108,7 @@
             document.getElementById(
                 "pagination"
             );
+
 
         pagination.innerHTML = "";
 
@@ -988,16 +1127,20 @@
                 "button"
             );
 
+
         previous.innerText =
             "Previous";
 
+
         previous.disabled =
             data.first;
+
 
         previous.onclick =
             () => goToPage(
                 data.number - 1
             );
+
 
         pagination.appendChild(
             previous
@@ -1015,6 +1158,7 @@
                     "button"
                 );
 
+
             button.innerText =
                 i + 1;
 
@@ -1029,8 +1173,10 @@
 
             }
 
+
             button.onclick =
                 () => goToPage(i);
+
 
             pagination.appendChild(
                 button
@@ -1044,23 +1190,26 @@
                 "button"
             );
 
+
         next.innerText =
             "Next";
 
+
         next.disabled =
             data.last;
+
 
         next.onclick =
             () => goToPage(
                 data.number + 1
             );
 
+
         pagination.appendChild(
             next
         );
 
     }
-
 
 
     // =====================================================
@@ -1092,7 +1241,6 @@
     }
 
 
-
     // =====================================================
     // SEARCH
     // =====================================================
@@ -1119,7 +1267,6 @@
         loadSearchResults(0);
 
     }
-
 
 
     // =====================================================
@@ -1227,7 +1374,6 @@
     }
 
 
-
     // =====================================================
     // SORT
     // =====================================================
@@ -1257,7 +1403,6 @@
     }
 
 
-
     // =====================================================
     // REFRESH
     // =====================================================
@@ -1277,7 +1422,6 @@
         loadProducts(0);
 
     }
-
 
 
     // =====================================================
@@ -1301,7 +1445,6 @@
     }
 
 
-
     // =====================================================
     // ENTER KEY
     // =====================================================
@@ -1319,7 +1462,6 @@
     }
 
 
-
     // =====================================================
     // ADD PRODUCT
     // =====================================================
@@ -1329,9 +1471,25 @@
         const name =
             document.getElementById(
                 "name"
-            )
-            .value
-            .trim();
+            ).value.trim();
+
+
+        const sku =
+            document.getElementById(
+                "sku"
+            ).value.trim();
+
+
+        const category =
+            document.getElementById(
+                "category"
+            ).value.trim();
+
+
+        const description =
+            document.getElementById(
+                "description"
+            ).value.trim();
 
 
         const price =
@@ -1342,18 +1500,22 @@
             );
 
 
-        const quantity =
+        const initialQuantity =
             Number(
                 document.getElementById(
-                    "quantity"
+                    "initialQuantity"
                 ).value
             );
 
 
-        if (!name) {
+        if (
+            !name ||
+            !sku ||
+            !category
+        ) {
 
             showMessage(
-                "Please enter product name.",
+                "Product name, SKU and Category are required.",
                 "error"
             );
 
@@ -1363,8 +1525,7 @@
 
 
         if (
-            !Number.isFinite(price)
-            ||
+            !Number.isFinite(price) ||
             price <= 0
         ) {
 
@@ -1379,13 +1540,12 @@
 
 
         if (
-            !Number.isInteger(quantity)
-            ||
-            quantity < 0
+            !Number.isInteger(initialQuantity) ||
+            initialQuantity < 0
         ) {
 
             showMessage(
-                "Quantity cannot be negative.",
+                "Initial quantity cannot be negative.",
                 "error"
             );
 
@@ -1394,14 +1554,13 @@
         }
 
 
-        const product = {
-
-            name: name,
-
-            price: price,
-
-            quantity: quantity
-
+        const request = {
+            name,
+            sku,
+            category,
+            description,
+            price,
+            initialQuantity
         };
 
 
@@ -1411,58 +1570,52 @@
                 await fetch(
                     API_URL,
                     {
-
                         method: "POST",
 
                         headers: {
-
                             "Content-Type":
                                 "application/json"
-
                         },
 
                         body:
-                            JSON.stringify(
-                                product
-                            )
-
+                            JSON.stringify(request)
                     }
                 );
 
 
             if (!response.ok) {
 
-                const error =
-                    await response.json();
-
-
                 throw new Error(
-                    Object.values(error)
-                        .join(" ")
+                    await getErrorMessage(response)
                 );
 
             }
 
 
+            const product =
+                await response.json();
+
+
             showMessage(
-                "Product added successfully.",
+                `Product added successfully. Product ID ${product.id} created and ${initialQuantity} units sent to Inventory.`,
                 "success"
             );
 
 
-            document.getElementById(
-                "name"
-            ).value = "";
-
-
-            document.getElementById(
-                "price"
-            ).value = "";
-
-
-            document.getElementById(
-                "quantity"
-            ).value = "";
+            [
+                "name",
+                "sku",
+                "category",
+                "description",
+                "price",
+                "initialQuantity"
+            ]
+            .forEach(
+                id =>
+                    document.getElementById(
+                        id
+                    ).value = ""
+            );
 
 
             loadProducts(0);
@@ -1479,7 +1632,6 @@
         }
 
     }
-
 
 
     // =====================================================
@@ -1522,19 +1674,31 @@
             document.getElementById(
                 "editName"
             ).value =
-                product.name;
+                product.name || "";
+
+
+            document.getElementById(
+                "editSku"
+            ).value =
+                product.sku || "";
+
+
+            document.getElementById(
+                "editCategory"
+            ).value =
+                product.category || "";
+
+
+            document.getElementById(
+                "editDescription"
+            ).value =
+                product.description || "";
 
 
             document.getElementById(
                 "editPrice"
             ).value =
                 product.price;
-
-
-            document.getElementById(
-                "editQuantity"
-            ).value =
-                product.quantity;
 
 
             document.getElementById(
@@ -1562,7 +1726,6 @@
     }
 
 
-
     // =====================================================
     // CLOSE EDIT MODAL
     // =====================================================
@@ -1587,7 +1750,6 @@
     }
 
 
-
     // =====================================================
     // UPDATE PRODUCT
     // =====================================================
@@ -1606,9 +1768,25 @@
         const name =
             document.getElementById(
                 "editName"
-            )
-            .value
-            .trim();
+            ).value.trim();
+
+
+        const sku =
+            document.getElementById(
+                "editSku"
+            ).value.trim();
+
+
+        const category =
+            document.getElementById(
+                "editCategory"
+            ).value.trim();
+
+
+        const description =
+            document.getElementById(
+                "editDescription"
+            ).value.trim();
 
 
         const price =
@@ -1619,18 +1797,14 @@
             );
 
 
-        const quantity =
-            Number(
-                document.getElementById(
-                    "editQuantity"
-                ).value
-            );
-
-
-        if (!name) {
+        if (
+            !name ||
+            !sku ||
+            !category
+        ) {
 
             showEditMessage(
-                "Product name cannot be empty.",
+                "Product name, SKU and Category are required.",
                 "error"
             );
 
@@ -1640,8 +1814,7 @@
 
 
         if (
-            !Number.isFinite(price)
-            ||
+            !Number.isFinite(price) ||
             price <= 0
         ) {
 
@@ -1655,30 +1828,12 @@
         }
 
 
-        if (
-            !Number.isInteger(quantity)
-            ||
-            quantity < 0
-        ) {
-
-            showEditMessage(
-                "Quantity cannot be negative.",
-                "error"
-            );
-
-            return;
-
-        }
-
-
         const product = {
-
-            name: name,
-
-            price: price,
-
-            quantity: quantity
-
+            name,
+            sku,
+            category,
+            description,
+            price
         };
 
 
@@ -1688,34 +1843,23 @@
                 await fetch(
                     `${API_URL}/${editingProductId}`,
                     {
-
                         method: "PUT",
 
                         headers: {
-
                             "Content-Type":
                                 "application/json"
-
                         },
 
                         body:
-                            JSON.stringify(
-                                product
-                            )
-
+                            JSON.stringify(product)
                     }
                 );
 
 
             if (!response.ok) {
 
-                const error =
-                    await response.json();
-
-
                 throw new Error(
-                    Object.values(error)
-                        .join(" ")
+                    await getErrorMessage(response)
                 );
 
             }
@@ -1725,7 +1869,7 @@
 
 
             showMessage(
-                "Product updated successfully.",
+                "Product details updated successfully.",
                 "success"
             );
 
@@ -1768,6 +1912,293 @@
     }
 
 
+    // =====================================================
+    // RECEIVE ADDITIONAL STOCK
+    // =====================================================
+
+    async function openStockModal(id) {
+
+        try {
+
+            const productResponse =
+                await fetch(
+                    `${API_URL}/${id}`
+                );
+
+
+            if (!productResponse.ok) {
+
+                throw new Error(
+                    "Unable to load product."
+                );
+
+            }
+
+
+            const product =
+                await productResponse.json();
+
+
+            stockProductId =
+                product.id;
+
+
+            document.getElementById(
+                "stockProductId"
+            ).innerText =
+                `Product ID: ${product.id}`;
+
+
+            document.getElementById(
+                "stockProductName"
+            ).innerText =
+                product.name || "";
+
+
+            document.getElementById(
+                "stockProductSku"
+            ).innerText =
+                product.sku || "";
+
+
+            const inventoryResponse =
+                await fetch(
+                    `${API_URL}/${id}/inventory`
+                );
+
+
+            if (!inventoryResponse.ok) {
+
+                throw new Error(
+                    "Unable to load current inventory."
+                );
+
+            }
+
+
+            const inventory =
+                await inventoryResponse.json();
+
+
+            document.getElementById(
+                "currentStock"
+            ).innerText =
+                inventory.availableStock;
+
+
+            document.getElementById(
+                "receivedQuantity"
+            ).value =
+                "";
+
+
+            document.getElementById(
+                "stockMessage"
+            ).style.display =
+                "none";
+
+
+            document.getElementById(
+                "stockModal"
+            ).style.display =
+                "flex";
+
+        }
+
+        catch (error) {
+
+            showMessage(
+                error.message,
+                "error"
+            );
+
+
+            stockProductId =
+                null;
+
+        }
+
+    }
+
+
+    // =====================================================
+    // CLOSE STOCK MODAL
+    // =====================================================
+
+    function closeStockModal() {
+
+        stockProductId =
+            null;
+
+
+        document.getElementById(
+            "stockModal"
+        ).style.display =
+            "none";
+
+
+        document.getElementById(
+            "stockMessage"
+        ).style.display =
+            "none";
+
+    }
+
+
+    // =====================================================
+    // RECEIVE STOCK
+    // =====================================================
+
+    async function receiveStock() {
+
+        if (
+            stockProductId === null
+        ) {
+
+            return;
+
+        }
+
+
+        const quantity =
+            Number(
+                document.getElementById(
+                    "receivedQuantity"
+                ).value
+            );
+
+
+        if (
+            !Number.isInteger(quantity) ||
+            quantity <= 0
+        ) {
+
+            showStockMessage(
+                "Received quantity must be greater than 0.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API_URL}/${stockProductId}/receive-stock?quantity=${quantity}`,
+                    {
+                        method: "PUT"
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    await getErrorMessage(response)
+                );
+
+            }
+
+
+            const inventory =
+                await response.json();
+
+
+            closeStockModal();
+
+
+            showMessage(
+                `Stock received successfully. Available stock is now ${inventory.availableStock}.`,
+                "success"
+            );
+
+        }
+
+        catch (error) {
+
+            showStockMessage(
+                error.message,
+                "error"
+            );
+
+        }
+
+    }
+
+
+    // =====================================================
+    // STOCK MESSAGE
+    // =====================================================
+
+    function showStockMessage(
+        message,
+        type
+    ) {
+
+        const element =
+            document.getElementById(
+                "stockMessage"
+            );
+
+
+        element.innerText =
+            message;
+
+
+        element.className =
+            `message ${type}`;
+
+
+        element.style.display =
+            "block";
+
+    }
+
+
+    // =====================================================
+    // ERROR MESSAGE
+    // =====================================================
+
+    async function getErrorMessage(
+        response
+    ) {
+
+        const text =
+            await response.text();
+
+
+        if (!text) {
+
+            return `Request failed (${response.status}).`;
+
+        }
+
+
+        try {
+
+            const data =
+                JSON.parse(text);
+
+
+            return (
+                Object.values(data).join(" ")
+                ||
+                `Request failed (${response.status}).`
+            );
+
+        }
+
+        catch (e) {
+
+            return text;
+
+        }
+
+    }
+
 
     // =====================================================
     // DELETE PRODUCT
@@ -1797,9 +2228,7 @@
                 await fetch(
                     `${API_URL}/${id}`,
                     {
-
                         method: "DELETE"
-
                     }
                 );
 
@@ -1857,7 +2286,6 @@
     }
 
 
-
     // =====================================================
     // EDIT MESSAGE
     // =====================================================
@@ -1885,7 +2313,6 @@
             "block";
 
     }
-
 
 
     // =====================================================
@@ -1926,7 +2353,6 @@
         );
 
     }
-
 
 
     // =====================================================
@@ -1987,13 +2413,13 @@
     }
 
 
-
     // =====================================================
     // CLOSE MODAL OUTSIDE CLICK
     // =====================================================
 
     window.onclick =
         function(event) {
+
 
             const modal =
                 document.getElementById(
@@ -2009,8 +2435,22 @@
 
             }
 
-        };
 
+            const stockModal =
+                document.getElementById(
+                    "stockModal"
+                );
+
+
+            if (
+                event.target === stockModal
+            ) {
+
+                closeStockModal();
+
+            }
+
+        };
 
 
     // =====================================================

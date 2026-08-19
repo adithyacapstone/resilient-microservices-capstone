@@ -19,7 +19,11 @@ public interface ProductRepository
             double price,
             Pageable pageable);
 
-    Page<Product> findByQuantity(
-            int quantity,
+    Page<Product> findBySkuContainingIgnoreCase(
+            String sku,
+            Pageable pageable);
+
+    Page<Product> findByCategoryContainingIgnoreCase(
+            String category,
             Pageable pageable);
 }

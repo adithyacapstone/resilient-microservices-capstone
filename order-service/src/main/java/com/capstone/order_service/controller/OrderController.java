@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.capstone.order_service.Order;
 import com.capstone.order_service.service.OrderService;
+import com.capstone.order_service.service.OrderService.InventoryResponse;
 
 @RestController
 @RequestMapping("/orders")
@@ -37,6 +38,17 @@ public class OrderController {
     public List<Order> getAllOrders() {
 
         return orderService.getAllOrders();
+    }
+
+
+    // =====================================================
+    // GET AVAILABLE PRODUCTS
+    // =====================================================
+
+    @GetMapping("/available-products")
+    public List<InventoryResponse> getAvailableProducts() {
+
+        return orderService.getAvailableProducts();
     }
 
 

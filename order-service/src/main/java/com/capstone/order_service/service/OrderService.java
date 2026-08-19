@@ -1,6 +1,7 @@
 package com.capstone.order_service.service;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -53,6 +54,47 @@ public class OrderService {
                                 "Order with ID " + id + " not found"
                         )
                 );
+    }
+
+
+    // =====================================================
+    // GET AVAILABLE PRODUCTS FROM INVENTORY
+    // =====================================================
+
+    public List<InventoryResponse> getAvailableProducts() {
+
+        try {
+
+            InventoryResponse[] inventory =
+                    restClient
+                            .get()
+                            .uri("/inventory")
+                            .retrieve()
+                            .body(InventoryResponse[].class);
+
+
+            if (inventory == null) {
+
+                return List.of();
+            }
+
+
+            return Arrays.stream(inventory)
+
+                    .filter(item ->
+                            item.getAvailableStock() > 0)
+
+                    .toList();
+
+        }
+
+        catch (Exception e) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Unable to retrieve inventory from Inventory Service"
+            );
+        }
     }
 
 
@@ -263,4 +305,94 @@ public class OrderService {
 
         return orderRepository.save(order);
     }
+
+
+    // =====================================================
+    // INVENTORY RESPONSE DTO
+    // =====================================================
+
+    public static class InventoryResponse {
+
+        private Long id;
+
+        private Long productId;
+
+        private int availableStock;
+
+        private int reservedStock;
+
+        private int reorderLevel;
+
+
+        public InventoryResponse() {
+        }
+
+
+        public Long getId() {
+
+            return id;
+        }
+
+
+        public void setId(Long id) {
+
+            this.id = id;
+        }
+
+
+        public Long getProductId() {
+
+            return productId;
+        }
+
+
+        public void setProductId(Long productId) {
+
+            this.productId = productId;
+        }
+
+
+        public int getAvailableStock() {
+
+            return availableStock;
+        }
+
+
+        public void setAvailableStock(
+                int availableStock) {
+
+            this.availableStock =
+                    availableStock;
+        }
+
+
+        public int getReservedStock() {
+
+            return reservedStock;
+        }
+
+
+        public void setReservedStock(
+                int reservedStock) {
+
+            this.reservedStock =
+                    reservedStock;
+        }
+
+
+        public int getReorderLevel() {
+
+            return reorderLevel;
+        }
+
+
+        public void setReorderLevel(
+                int reorderLevel) {
+
+            this.reorderLevel =
+                    reorderLevel;
+        }
+
+    }
+
 }

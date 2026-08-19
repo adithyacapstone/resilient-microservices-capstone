@@ -1,18 +1,10 @@
-package com.capstone.productservice;
+package com.capstone.productservice.dto;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 
-@Entity
-public class Product {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class ProductCreateRequest {
 
     @NotBlank(message = "Product name cannot be empty")
     private String name;
@@ -28,24 +20,10 @@ public class Product {
     @Positive(message = "Price must be greater than 0")
     private double price;
 
-    public Product() {
-    }
+    @Min(value = 0, message = "Initial quantity cannot be negative")
+    private int initialQuantity;
 
-    public Product(String name, String sku, String category,
-                   String description, double price) {
-        this.name = name;
-        this.sku = sku;
-        this.category = category;
-        this.description = description;
-        this.price = price;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
+    public ProductCreateRequest() {
     }
 
     public String getName() {
@@ -86,5 +64,13 @@ public class Product {
 
     public void setPrice(double price) {
         this.price = price;
+    }
+
+    public int getInitialQuantity() {
+        return initialQuantity;
+    }
+
+    public void setInitialQuantity(int initialQuantity) {
+        this.initialQuantity = initialQuantity;
     }
 }

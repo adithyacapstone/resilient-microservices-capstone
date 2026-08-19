@@ -3,29 +3,38 @@ package com.capstone.productservice.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import com.capstone.productservice.dto.ProductInventoryResponse;
+import org.springframework.web.client.RestClient;
+
 import com.capstone.productservice.Product;
 import com.capstone.productservice.ProductNotFoundException;
+import com.capstone.productservice.dto.ProductCreateRequest;
+import com.capstone.productservice.dto.ProductInventoryResponse;
 import com.capstone.productservice.repository.ProductRepository;
-import org.springframework.web.client.RestClient;
+
 @Service
 public class ProductService {
 
     private final ProductRepository productRepository;
     private final RestClient restClient;
 
+    private final String inventoryServiceUrl;
+
     public ProductService(
             ProductRepository productRepository,
-            RestClient restClient) {
+            RestClient restClient,
+            @Value("${inventory.service.url:http://localhost:8081}")
+            String inventoryServiceUrl) {
 
         this.productRepository = productRepository;
         this.restClient = restClient;
+        this.inventoryServiceUrl = inventoryServiceUrl;
     }
 
 
@@ -59,7 +68,7 @@ public class ProductService {
 
 
     // =====================================================
-    // SEARCH PRODUCTS - PAGINATION + SORTING
+    // SEARCH PRODUCTS
     // =====================================================
 
     public Page<Product> searchProducts(
@@ -85,15 +94,9 @@ public class ProductService {
                 Sort.by(sortDirection, sortBy)
         );
 
-
-        // =================================================
-        // SEARCH BY PRODUCT ID
-        // =================================================
-
         if (field.equalsIgnoreCase("id")) {
 
             try {
-
                 Long id = Long.parseLong(value);
 
                 Specification<Product> specification =
@@ -109,15 +112,10 @@ public class ProductService {
                 );
 
             } catch (NumberFormatException e) {
-
                 return Page.empty(pageable);
             }
         }
 
-
-        // =================================================
-        // SEARCH BY PRODUCT NAME
-        // =================================================
 
         if (field.equalsIgnoreCase("name")) {
 
@@ -129,9 +127,25 @@ public class ProductService {
         }
 
 
-        // =================================================
-        // SEARCH BY PRICE
-        // =================================================
+        if (field.equalsIgnoreCase("sku")) {
+
+            return productRepository
+                    .findBySkuContainingIgnoreCase(
+                            value,
+                            pageable
+                    );
+        }
+
+
+        if (field.equalsIgnoreCase("category")) {
+
+            return productRepository
+                    .findByCategoryContainingIgnoreCase(
+                            value,
+                            pageable
+                    );
+        }
+
 
         if (field.equalsIgnoreCase("price")) {
 
@@ -147,39 +161,10 @@ public class ProductService {
                         );
 
             } catch (NumberFormatException e) {
-
                 return Page.empty(pageable);
             }
         }
 
-
-        // =================================================
-        // SEARCH BY QUANTITY
-        // =================================================
-
-        if (field.equalsIgnoreCase("quantity")) {
-
-            try {
-
-                int quantity =
-                        Integer.parseInt(value);
-
-                return productRepository
-                        .findByQuantity(
-                                quantity,
-                                pageable
-                        );
-
-            } catch (NumberFormatException e) {
-
-                return Page.empty(pageable);
-            }
-        }
-
-
-        // =================================================
-        // ALL FIELDS SEARCH
-        // =================================================
 
         if (field.equalsIgnoreCase("all")) {
 
@@ -190,27 +175,49 @@ public class ProductService {
                     new ArrayList<>();
 
 
-            // ---------------------------------------------
-            // Always search PRODUCT NAME
-            // ---------------------------------------------
-
+            // Product name
             specifications.add(
                     (root, query, criteriaBuilder) ->
                             criteriaBuilder.like(
                                     criteriaBuilder.lower(
                                             root.get("name")
                                     ),
-                                    "%" +
-                                    searchValue.toLowerCase() +
                                     "%"
+                                    + searchValue.toLowerCase()
+                                    + "%"
                             )
             );
 
 
-            // ---------------------------------------------
-            // If numeric, also search ID
-            // ---------------------------------------------
+            // SKU
+            specifications.add(
+                    (root, query, criteriaBuilder) ->
+                            criteriaBuilder.like(
+                                    criteriaBuilder.lower(
+                                            root.get("sku")
+                                    ),
+                                    "%"
+                                    + searchValue.toLowerCase()
+                                    + "%"
+                            )
+            );
 
+
+            // Category
+            specifications.add(
+                    (root, query, criteriaBuilder) ->
+                            criteriaBuilder.like(
+                                    criteriaBuilder.lower(
+                                            root.get("category")
+                                    ),
+                                    "%"
+                                    + searchValue.toLowerCase()
+                                    + "%"
+                            )
+            );
+
+
+            // ID
             try {
 
                 Long id =
@@ -225,16 +232,10 @@ public class ProductService {
                 );
 
             } catch (NumberFormatException ignored) {
-
-                // Not a number.
-                // No ID search required.
             }
 
 
-            // ---------------------------------------------
-            // If numeric, also search PRICE
-            // ---------------------------------------------
-
+            // Price
             try {
 
                 double price =
@@ -249,39 +250,8 @@ public class ProductService {
                 );
 
             } catch (NumberFormatException ignored) {
-
-                // Not a number.
-                // No price search required.
             }
 
-
-            // ---------------------------------------------
-            // If integer, also search QUANTITY
-            // ---------------------------------------------
-
-            try {
-
-                int quantity =
-                        Integer.parseInt(searchValue);
-
-                specifications.add(
-                        (root, query, criteriaBuilder) ->
-                                criteriaBuilder.equal(
-                                        root.get("quantity"),
-                                        quantity
-                                )
-                );
-
-            } catch (NumberFormatException ignored) {
-
-                // Not an integer.
-                // No quantity search required.
-            }
-
-
-            // ---------------------------------------------
-            // Combine all conditions with OR
-            // ---------------------------------------------
 
             Specification<Product> finalSpecification =
                     specifications
@@ -291,12 +261,9 @@ public class ProductService {
                             )
                             .orElse(null);
 
-
             if (finalSpecification == null) {
-
                 return Page.empty(pageable);
             }
-
 
             return productRepository.findAll(
                     finalSpecification,
@@ -304,10 +271,6 @@ public class ProductService {
             );
         }
 
-
-        // =================================================
-        // DEFAULT
-        // =================================================
 
         return productRepository.findAll(pageable);
     }
@@ -327,9 +290,11 @@ public class ProductService {
                     ||
                     sortBy.equals("name")
                     ||
-                    sortBy.equals("price")
+                    sortBy.equals("sku")
                     ||
-                    sortBy.equals("quantity")
+                    sortBy.equals("category")
+                    ||
+                    sortBy.equals("price")
                 );
     }
 
@@ -353,12 +318,87 @@ public class ProductService {
 
 
     // =====================================================
-    // ADD PRODUCT
+    // ADD NEW PRODUCT + INITIAL STOCK
     // =====================================================
 
-    public Product addProduct(Product product) {
+    public Product addProduct(
+            ProductCreateRequest request) {
 
-        return productRepository.save(product);
+        Product product =
+                new Product(
+                        request.getName(),
+                        request.getSku(),
+                        request.getCategory(),
+                        request.getDescription(),
+                        request.getPrice()
+                );
+
+        Product savedProduct =
+                productRepository.save(product);
+
+        try {
+
+            restClient
+                    .post()
+                    .uri(
+                            inventoryServiceUrl
+                                    + "/inventory"
+                    )
+                    .body(
+                            new InventoryRequest(
+                                    savedProduct.getId(),
+                                    request.getInitialQuantity(),
+                                    0,
+                                    2
+                            )
+                    )
+                    .retrieve()
+                    .toBodilessEntity();
+
+        } catch (Exception e) {
+
+            // Prevent a Product without its initial
+            // Inventory record.
+
+            productRepository.delete(savedProduct);
+
+            throw new RuntimeException(
+                    "Product could not be added to Inventory Service: "
+                    + e.getMessage()
+            );
+        }
+
+        return savedProduct;
+    }
+
+
+    // =====================================================
+    // RECEIVE ADDITIONAL STOCK
+    // =====================================================
+
+    public String receiveStock(
+            Long productId,
+            int quantity) {
+
+        getProductById(productId);
+
+        if (quantity <= 0) {
+            throw new IllegalArgumentException(
+                    "Received quantity must be greater than 0"
+            );
+        }
+
+        return restClient
+                .put()
+                .uri(
+                        inventoryServiceUrl
+                                + "/inventory/product/"
+                                + productId
+                                + "/receive?quantity="
+                                + quantity
+                )
+                .retrieve()
+                .body(String.class);
     }
 
 
@@ -377,12 +417,20 @@ public class ProductService {
                 updatedProduct.getName()
         );
 
-        existingProduct.setPrice(
-                updatedProduct.getPrice()
+        existingProduct.setSku(
+                updatedProduct.getSku()
         );
 
-        existingProduct.setQuantity(
-                updatedProduct.getQuantity()
+        existingProduct.setCategory(
+                updatedProduct.getCategory()
+        );
+
+        existingProduct.setDescription(
+                updatedProduct.getDescription()
+        );
+
+        existingProduct.setPrice(
+                updatedProduct.getPrice()
         );
 
         return productRepository.save(
@@ -405,7 +453,7 @@ public class ProductService {
 
 
     // =====================================================
-    // OLD SEARCH METHODS
+    // SEARCH BY NAME
     // =====================================================
 
     public List<Product> searchByName(
@@ -420,6 +468,10 @@ public class ProductService {
     }
 
 
+    // =====================================================
+    // SEARCH BY PRICE
+    // =====================================================
+
     public List<Product> searchByPrice(
             double price) {
 
@@ -432,55 +484,89 @@ public class ProductService {
     }
 
 
-    public List<Product> searchByQuantity(
-            int quantity) {
+    // =====================================================
+    // GET INVENTORY
+    // =====================================================
 
-        return productRepository
-                .findByQuantity(
-                        quantity,
-                        Pageable.unpaged()
+    public String getInventory(Long productId) {
+
+        return restClient
+                .get()
+                .uri(
+                        inventoryServiceUrl
+                                + "/inventory/product/"
+                                + productId
                 )
-                .getContent();
+                .retrieve()
+                .body(String.class);
     }
-    
- // =====================================================
- // GET INVENTORY FROM INVENTORY SERVICE
- // =====================================================
 
- public String getInventory(Long productId) {
 
-     return restClient
-             .get()
-             .uri(
-                 "http://localhost:8081/inventory/product/"
-                 + productId
-             )
-             .retrieve()
-             .body(String.class);
- }
-//=====================================================
-//GET PRODUCT + INVENTORY DETAILS
-//=====================================================
+    // =====================================================
+    // GET PRODUCT + INVENTORY DETAILS
+    // =====================================================
 
-public ProductInventoryResponse getProductInventoryDetails(
-      Long id) {
+    public ProductInventoryResponse getProductInventoryDetails(
+            Long id) {
 
-  Product product =
-          getProductById(id);
+        Product product =
+                getProductById(id);
 
-  Object inventory =
-          restClient
-                  .get()
-                  .uri(
-                          "http://localhost:8081/inventory/product/"
-                          + id
-                  )
-                  .retrieve()
-                  .body(Object.class);
+        Object inventory =
+                restClient
+                        .get()
+                        .uri(
+                                inventoryServiceUrl
+                                        + "/inventory/product/"
+                                        + id
+                        )
+                        .retrieve()
+                        .body(Object.class);
 
-  return new ProductInventoryResponse(
-          product,
-          inventory
-  );
-}
+        return new ProductInventoryResponse(
+                product,
+                inventory
+        );
+    }
+
+
+    // =====================================================
+    // INTERNAL INVENTORY REQUEST
+    // =====================================================
+
+    private static class InventoryRequest {
+
+        private Long productId;
+        private int availableStock;
+        private int reservedStock;
+        private int reorderLevel;
+
+        public InventoryRequest(
+                Long productId,
+                int availableStock,
+                int reservedStock,
+                int reorderLevel) {
+
+            this.productId = productId;
+            this.availableStock = availableStock;
+            this.reservedStock = reservedStock;
+            this.reorderLevel = reorderLevel;
+        }
+
+        public Long getProductId() {
+            return productId;
+        }
+
+        public int getAvailableStock() {
+            return availableStock;
+        }
+
+        public int getReservedStock() {
+            return reservedStock;
+        }
+
+        public int getReorderLevel() {
+            return reorderLevel;
+        }
+    }
 }

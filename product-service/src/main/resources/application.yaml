@@ -11,11 +11,12 @@ spring:
 
   application:
     name: product-service
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
 
   endpoint:
     health:
@@ -28,3 +29,7 @@ management:
       enabled: true
     readinessstate:
       enabled: true
+
+inventory:
+  service:
+    url: ${INVENTORY_SERVICE_URL:http://localhost:8081}
