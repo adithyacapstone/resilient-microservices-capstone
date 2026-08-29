@@ -48,12 +48,24 @@ jobs:
 
       - name: Build and test Product Service
         working-directory: product-service
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/productdb
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
         run: mvn --batch-mode verify
 
       - name: Build and test Inventory Service
         working-directory: inventory-service
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/inventorydb
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
         run: mvn --batch-mode verify
 
       - name: Build and test Order Service
         working-directory: order-service
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/orderdb
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
         run: mvn --batch-mode verify
