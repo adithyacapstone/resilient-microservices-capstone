@@ -19,3 +19,6 @@ Thumbs.db
 *.log
 # Local Capstone runtime files
 capstone-portforward-pids.txt
+
+# Docker image backups
+*.tar
