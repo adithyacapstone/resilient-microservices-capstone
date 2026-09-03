@@ -1,6 +1,8 @@
 package com.capstone.recovery.monitor;
 
+import com.capstone.recovery.model.RecoveryDecision;
 import com.capstone.recovery.service.KubernetesRecoveryService;
+import com.capstone.recovery.service.MultiMetricRecoveryService;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1Pod;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,12 +15,10 @@ import java.util.Map;
 public class RecoveryMonitor {
 
     private final KubernetesRecoveryService kubernetesRecoveryService;
+    private final MultiMetricRecoveryService multiMetricRecoveryService;
 
     /*
      * Services monitored by the Recovery Engine.
-     *
-     * Key   = logical service name
-     * Value = Kubernetes app label
      */
     private final Map<String, String> monitoredServices =
             new LinkedHashMap<>();
@@ -31,9 +31,6 @@ public class RecoveryMonitor {
 
     /*
      * Previous restart count for each service.
-     *
-     * This allows the Recovery Engine to detect
-     * container restart activity.
      */
     private final Map<String, Integer> previousRestartCounts =
             new LinkedHashMap<>();
@@ -46,10 +43,14 @@ public class RecoveryMonitor {
             new LinkedHashMap<>();
 
     public RecoveryMonitor(
-            KubernetesRecoveryService kubernetesRecoveryService) {
+            KubernetesRecoveryService kubernetesRecoveryService,
+            MultiMetricRecoveryService multiMetricRecoveryService) {
 
         this.kubernetesRecoveryService =
                 kubernetesRecoveryService;
+
+        this.multiMetricRecoveryService =
+                multiMetricRecoveryService;
 
         monitoredServices.put(
                 "product-service",
@@ -94,7 +95,7 @@ public class RecoveryMonitor {
                     );
 
             /*
-             * Service pod not found.
+             * Pod not found.
              */
             if (servicePod == null) {
 
@@ -135,33 +136,23 @@ public class RecoveryMonitor {
                             ? servicePod.getStatus().getPhase()
                             : "UNKNOWN";
 
-            /*
-             * NEW OPERATIONAL SIGNAL:
-             *
-             * Check Kubernetes Ready condition.
-             */
             boolean podReady =
                     kubernetesRecoveryService.isPodReady(
                             servicePod
                     );
 
-            /*
-             * NEW OPERATIONAL SIGNAL:
-             *
-             * Read the container restart count.
-             */
             int restartCount =
                     getRestartCount(servicePod);
 
+            /*
+             * First observation.
+             */
             String previousPodName =
                     previousPodNames.get(serviceName);
 
             Integer previousRestartCount =
                     previousRestartCounts.get(serviceName);
 
-            /*
-             * First observation.
-             */
             if (previousPodName == null) {
 
                 previousPodNames.put(
@@ -190,6 +181,10 @@ public class RecoveryMonitor {
                                 + restartCount
                 );
 
+                /*
+                 * Do not make a metric-driven recovery decision
+                 * during the first observation.
+                 */
                 return;
             }
 
@@ -241,6 +236,10 @@ public class RecoveryMonitor {
                     );
                 }
 
+                /*
+                 * Give the new pod time to stabilize before
+                 * metric-driven recovery evaluation.
+                 */
                 return;
             }
 
@@ -266,47 +265,14 @@ public class RecoveryMonitor {
             );
 
             /*
-             * MULTI-SIGNAL HEALTH DECISION
+             * Direct Kubernetes safety recovery.
              *
-             * Healthy requires:
-             *
-             * 1. Pod phase = Running
-             * 2. Kubernetes Ready condition = True
+             * A pod that is not Running or not Ready is
+             * immediately considered operationally unhealthy.
              */
-            if ("Running".equalsIgnoreCase(status)
-                    && podReady) {
+            if (!"Running".equalsIgnoreCase(status)
+                    || !podReady) {
 
-                System.out.println(
-                        "[RECOVERY ENGINE] "
-                                + serviceName
-                                + " healthy: "
-                                + currentPodName
-                                + " | Ready=true"
-                                + " | Restarts="
-                                + restartCount
-                );
-
-                if (recoveryInProgress.get(serviceName)) {
-
-                    System.out.println(
-                            "[RECOVERY ENGINE] Recovery confirmed: "
-                                    + serviceName
-                                    + " -> "
-                                    + currentPodName
-                    );
-
-                    recoveryInProgress.put(
-                            serviceName,
-                            false
-                    );
-                }
-
-            } else {
-
-                /*
-                 * Pod is Running but not Ready,
-                 * OR pod phase itself is unhealthy.
-                 */
                 System.out.println(
                         "[RECOVERY ENGINE] "
                                 + serviceName
@@ -339,6 +305,99 @@ public class RecoveryMonitor {
 
                     performRecovery(serviceName);
                 }
+
+                return;
+            }
+
+            /*
+             * Multi-metric decision.
+             */
+            RecoveryDecision decision =
+                    multiMetricRecoveryService.evaluate(
+                            serviceName
+                    );
+
+            System.out.println(
+                    "[RECOVERY ENGINE] Multi-metric decision: "
+                            + serviceName
+                            + " | RecoveryRequired="
+                            + decision.recoveryRequired()
+                            + " | Reason="
+                            + decision.reason()
+                            + " | Latency="
+                            + decision.latencySeconds()
+                            + "s"
+                            + " | CPU="
+                            + decision.cpuPercent()
+                            + "%"
+                            + " | Memory="
+                            + decision.heapMemoryPercent()
+                            + "%"
+                            + " | ErrorRate="
+                            + decision.errorRate()
+                            + " | Ready="
+                            + decision.podReady()
+            );
+
+            /*
+             * Metric-driven automatic recovery.
+             */
+            if (decision.recoveryRequired()) {
+
+                if (!recoveryInProgress.get(serviceName)) {
+
+                    recoveryInProgress.put(
+                            serviceName,
+                            true
+                    );
+
+                    System.out.println(
+                            "[RECOVERY ENGINE] MULTI-METRIC RECOVERY REQUIRED: "
+                                    + serviceName
+                    );
+
+                    System.out.println(
+                            "[RECOVERY ENGINE] Reason: "
+                                    + decision.reason()
+                    );
+
+                    System.out.println(
+                            "[RECOVERY ENGINE] Starting automatic recovery: "
+                                    + serviceName
+                    );
+
+                    performRecovery(serviceName);
+                }
+
+                return;
+            }
+
+            /*
+             * Healthy state.
+             */
+            System.out.println(
+                    "[RECOVERY ENGINE] "
+                            + serviceName
+                            + " healthy: "
+                            + currentPodName
+                            + " | Ready=true"
+                            + " | Restarts="
+                            + restartCount
+            );
+
+            if (recoveryInProgress.get(serviceName)) {
+
+                System.out.println(
+                        "[RECOVERY ENGINE] Recovery confirmed: "
+                                + serviceName
+                                + " -> "
+                                + currentPodName
+                );
+
+                recoveryInProgress.put(
+                        serviceName,
+                        false
+                );
             }
 
         } catch (ApiException e) {
@@ -352,10 +411,6 @@ public class RecoveryMonitor {
         }
     }
 
-    /*
-     * Get the total restart count across all containers
-     * in the monitored pod.
-     */
     private int getRestartCount(V1Pod pod) {
 
         if (pod == null

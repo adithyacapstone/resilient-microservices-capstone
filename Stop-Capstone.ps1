@@ -1,62 +1,61 @@
 # ============================================
-# Resilient Microservices Capstone
-# STOP Port Forwarding
+# RESILIENT MICROSERVICES CAPSTONE
+# STOP ALL PORT-FORWARDS + CLOSE WINDOWS
 # ============================================
 
-$ErrorActionPreference = "SilentlyContinue"
-
-$ProjectFolder = Split-Path -Parent $MyInvocation.MyCommand.Path
-$PidFile = Join-Path $ProjectFolder "capstone-portforward-pids.txt"
-
 Write-Host ""
-Write-Host "============================================" -ForegroundColor Cyan
-Write-Host " Stopping Capstone Port-Forwards" -ForegroundColor Cyan
-Write-Host "============================================" -ForegroundColor Cyan
+Write-Host "Stopping Capstone port-forwards..." -ForegroundColor Cyan
 Write-Host ""
 
-if (-not (Test-Path $PidFile)) {
-    Write-Host "No PID file found." -ForegroundColor Yellow
-    Write-Host "There are no tracked Capstone port-forward windows to stop."
-    Write-Host ""
-    exit
-}
+# Ports used by Capstone
+$ports = @(8080, 8081, 8082, 8090, 9090, 3000, 2333)
 
-$Entries = Get-Content $PidFile
+# Stop processes owning these ports
+foreach ($port in $ports) {
 
-foreach ($Entry in $Entries) {
+    $connections = Get-NetTCPConnection `
+        -LocalPort $port `
+        -ErrorAction SilentlyContinue
 
-    if ([string]::IsNullOrWhiteSpace($Entry)) {
-        continue
-    }
+    foreach ($connection in $connections) {
 
-    $Parts = $Entry -split '\|', 2
-    $Service = $Parts[0]
-    $Pid = [int]$Parts[1]
+        $processId = $connection.OwningProcess
 
-    $Process = Get-Process -Id $Pid -ErrorAction SilentlyContinue
+        if ($processId -and $processId -ne 0) {
 
-    if ($null -ne $Process) {
+            Write-Host "Stopping port $port (PID $processId)..."
 
-        Write-Host "Stopping $Service (PID $Pid)..." -ForegroundColor Yellow
-
-        try {
-            Stop-Process -Id $Pid -Force -ErrorAction Stop
-            Write-Host "  Stopped." -ForegroundColor Green
+            Stop-Process `
+                -Id $processId `
+                -Force `
+                -ErrorAction SilentlyContinue
         }
-        catch {
-            Write-Host "  Could not stop PID $Pid." -ForegroundColor Red
-        }
-
-    }
-    else {
-        Write-Host "$Service (PID $Pid) is already stopped." -ForegroundColor DarkGray
     }
 }
 
-Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
+# Give Windows a moment
+Start-Sleep -Seconds 2
+
+# Close PowerShell windows containing Capstone port-forward commands
+Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" |
+    Where-Object {
+        $_.CommandLine -match "kubectl port-forward"
+    } |
+    ForEach-Object {
+
+        Write-Host "Closing port-forward window (PID $($_.ProcessId))..."
+
+        Stop-Process `
+            -Id $_.ProcessId `
+            -Force `
+            -ErrorAction SilentlyContinue
+    }
+
+Start-Sleep -Seconds 1
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host " Capstone port-forwards stopped." -ForegroundColor Green
+Write-Host " CAPSTONE PORT-FORWARDS STOPPED" -ForegroundColor Green
+Write-Host " WINDOWS CLOSED" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""

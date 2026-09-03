@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: recovery-engine
+  namespace: default
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: recovery-engine
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: recovery-engine
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: recovery-engine
+    namespace: default
+roleRef:
+  kind: Role
+  name: recovery-engine
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recovery-engine
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recovery-engine
+  template:
+    metadata:
+      labels:
+        app: recovery-engine
+    spec:
+      serviceAccountName: recovery-engine
+      containers:
+        - name: recovery-engine
+          image: recovery-engine:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8090
+          env:
+            - name: PROMETHEUS_URL
+              value: "http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recovery-engine
+  namespace: default
+spec:
+  type: NodePort
+  selector:
+    app: recovery-engine
+  ports:
+    - port: 8090
+      targetPort: 8090
+      nodePort: 30090

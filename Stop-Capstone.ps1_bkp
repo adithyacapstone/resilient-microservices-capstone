@@ -1,0 +1,34 @@
+# ============================================
+# RESILIENT MICROSERVICES CAPSTONE
+# Stop GUI port-forwards
+# ============================================
+
+$ports = @(8080, 8081, 8082, 8090, 9090, 3000, 2333)
+
+foreach ($port in $ports) {
+
+    $connections = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
+
+    foreach ($connection in $connections) {
+
+        $processId = $connection.OwningProcess
+
+        if ($processId -and $processId -ne 0) {
+            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host "   CAPSTONE PORT-FORWARDS STOPPED" -ForegroundColor Cyan
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "8080  Product"
+Write-Host "8081  Inventory"
+Write-Host "8082  Order"
+Write-Host "8090  Recovery Engine"
+Write-Host "9090  Prometheus"
+Write-Host "3000  Grafana"
+Write-Host "2333  Chaos Mesh"
+Write-Host ""
