@@ -11,6 +11,10 @@ public record RecoveryDecision(
         double heapMemoryPercent,
         double errorRate,
         boolean podReady,
-        int restartCount
+        int restartCount,
+        int desiredReplicas,
+        int availableReplicas,
+        int readyReplicas,
+        boolean deploymentHealthy
 ) {
 }

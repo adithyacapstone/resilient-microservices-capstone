@@ -2,6 +2,7 @@ package com.capstone.recovery.service;
 
 import com.capstone.recovery.model.RecoveryDecision;
 import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1Pod;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -46,20 +47,29 @@ public class MultiMetricRecoveryService {
                         serviceName
                 );
 
-        if (pod == null) {
+        V1Deployment deployment =
+                kubernetesRecoveryService.getServiceDeployment(
+                        serviceName
+                );
+
+        if (pod == null || deployment == null) {
 
             return new RecoveryDecision(
                     serviceName,
                     true,
                     "CRITICAL",
-                    "Pod not found",
+                    "Pod or deployment not found",
                     Double.NaN,
                     Double.NaN,
                     Double.NaN,
                     Double.NaN,
                     Double.NaN,
                     false,
-                    0
+                    0,
+                    0,
+                    0,
+                    0,
+                    false
             );
         }
 
@@ -68,6 +78,29 @@ public class MultiMetricRecoveryService {
 
         int restartCount =
                 getRestartCount(pod);
+
+        int desiredReplicas =
+                deployment.getSpec() != null
+                        && deployment.getSpec().getReplicas() != null
+                        ? deployment.getSpec().getReplicas()
+                        : 0;
+
+        int availableReplicas =
+                deployment.getStatus() != null
+                        && deployment.getStatus().getAvailableReplicas() != null
+                        ? deployment.getStatus().getAvailableReplicas()
+                        : 0;
+
+        int readyReplicas =
+                deployment.getStatus() != null
+                        && deployment.getStatus().getReadyReplicas() != null
+                        ? deployment.getStatus().getReadyReplicas()
+                        : 0;
+
+        boolean deploymentHealthy =
+                kubernetesRecoveryService.isDeploymentHealthy(
+                        serviceName
+                );
 
         double latency =
                 prometheusMetricsService
@@ -90,8 +123,7 @@ public class MultiMetricRecoveryService {
                         .getErrorRate(serviceName);
 
         /*
-         * Kubernetes readiness is treated as an immediate
-         * operational failure.
+         * Kubernetes readiness is an immediate operational failure.
          */
         if (!podReady) {
 
@@ -106,12 +138,40 @@ public class MultiMetricRecoveryService {
                     containerMemoryPercent,
                     errorRate,
                     false,
-                    restartCount
+                    restartCount,
+                    desiredReplicas,
+                    availableReplicas,
+                    readyReplicas,
+                    deploymentHealthy
             );
         }
 
         /*
-         * Missing Prometheus data must never be interpreted
+         * Deployment state is also an important operational signal.
+         */
+        if (!deploymentHealthy) {
+
+            return new RecoveryDecision(
+                    serviceName,
+                    true,
+                    "CRITICAL",
+                    "Deployment replica state unhealthy",
+                    latency,
+                    cpu,
+                    containerMemory,
+                    containerMemoryPercent,
+                    errorRate,
+                    podReady,
+                    restartCount,
+                    desiredReplicas,
+                    availableReplicas,
+                    readyReplicas,
+                    false
+            );
+        }
+
+        /*
+         * Missing Prometheus data must not be interpreted
          * as healthy or unhealthy.
          */
         boolean metricsAvailable =
@@ -132,8 +192,12 @@ public class MultiMetricRecoveryService {
                     containerMemory,
                     containerMemoryPercent,
                     errorRate,
-                    true,
-                    restartCount
+                    podReady,
+                    restartCount,
+                    desiredReplicas,
+                    availableReplicas,
+                    readyReplicas,
+                    deploymentHealthy
             );
         }
 
@@ -200,11 +264,6 @@ public class MultiMetricRecoveryService {
 
         /*
          * Severity classification.
-         *
-         * 0 abnormal signals  -> HEALTHY
-         * 1 abnormal signal   -> WARNING
-         * 2 abnormal signals  -> DEGRADED
-         * 3+ abnormal signals -> CRITICAL
          */
         String severity;
 
@@ -245,8 +304,12 @@ public class MultiMetricRecoveryService {
                 containerMemory,
                 containerMemoryPercent,
                 errorRate,
-                true,
-                restartCount
+                podReady,
+                restartCount,
+                desiredReplicas,
+                availableReplicas,
+                readyReplicas,
+                deploymentHealthy
         );
     }
 
