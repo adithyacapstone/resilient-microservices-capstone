@@ -5,6 +5,7 @@ import com.capstone.recovery.service.KubernetesRecoveryService;
 import com.capstone.recovery.service.MultiMetricRecoveryService;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1Pod;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -42,6 +43,19 @@ public class RecoveryMonitor {
     private final Map<String, Boolean> recoveryInProgress =
             new LinkedHashMap<>();
 
+    /*
+     * Consecutive unhealthy metric evaluations.
+     */
+    private final Map<String, Integer> consecutiveUnhealthyEvaluations =
+            new LinkedHashMap<>();
+
+    /*
+     * Number of consecutive unhealthy evaluations required
+     * before metric-driven recovery is triggered.
+     */
+    @Value("${recovery.consecutive-unhealthy-evaluations:3}")
+    private int requiredConsecutiveUnhealthyEvaluations;
+
     public RecoveryMonitor(
             KubernetesRecoveryService kubernetesRecoveryService,
             MultiMetricRecoveryService multiMetricRecoveryService) {
@@ -72,6 +86,11 @@ public class RecoveryMonitor {
             recoveryInProgress.put(
                     serviceName,
                     false
+            );
+
+            consecutiveUnhealthyEvaluations.put(
+                    serviceName,
+                    0
             );
         }
     }
@@ -181,10 +200,6 @@ public class RecoveryMonitor {
                                 + restartCount
                 );
 
-                /*
-                 * Do not make a metric-driven recovery decision
-                 * during the first observation.
-                 */
                 return;
             }
 
@@ -219,6 +234,11 @@ public class RecoveryMonitor {
                         restartCount
                 );
 
+                consecutiveUnhealthyEvaluations.put(
+                        serviceName,
+                        0
+                );
+
                 if ("Running".equalsIgnoreCase(status)
                         && podReady) {
 
@@ -236,10 +256,6 @@ public class RecoveryMonitor {
                     );
                 }
 
-                /*
-                 * Give the new pod time to stabilize before
-                 * metric-driven recovery evaluation.
-                 */
                 return;
             }
 
@@ -272,6 +288,11 @@ public class RecoveryMonitor {
              */
             if (!"Running".equalsIgnoreCase(status)
                     || !podReady) {
+
+                consecutiveUnhealthyEvaluations.put(
+                        serviceName,
+                        0
+                );
 
                 System.out.println(
                         "[RECOVERY ENGINE] "
@@ -340,37 +361,81 @@ public class RecoveryMonitor {
             );
 
             /*
-             * Metric-driven automatic recovery.
+             * Persistent metric anomaly detection.
              */
             if (decision.recoveryRequired()) {
 
-                if (!recoveryInProgress.get(serviceName)) {
+                int currentCount =
+                        consecutiveUnhealthyEvaluations.get(serviceName) + 1;
 
-                    recoveryInProgress.put(
-                            serviceName,
-                            true
-                    );
+                consecutiveUnhealthyEvaluations.put(
+                        serviceName,
+                        currentCount
+                );
 
-                    System.out.println(
-                            "[RECOVERY ENGINE] MULTI-METRIC RECOVERY REQUIRED: "
-                                    + serviceName
-                    );
+                System.out.println(
+                        "[RECOVERY ENGINE] "
+                                + serviceName
+                                + " unhealthy evaluation "
+                                + currentCount
+                                + "/"
+                                + requiredConsecutiveUnhealthyEvaluations
+                );
 
-                    System.out.println(
-                            "[RECOVERY ENGINE] Reason: "
-                                    + decision.reason()
-                    );
+                if (currentCount >= requiredConsecutiveUnhealthyEvaluations) {
 
-                    System.out.println(
-                            "[RECOVERY ENGINE] Starting automatic recovery: "
-                                    + serviceName
-                    );
+                    if (!recoveryInProgress.get(serviceName)) {
 
-                    performRecovery(serviceName);
+                        recoveryInProgress.put(
+                                serviceName,
+                                true
+                        );
+
+                        System.out.println(
+                                "[RECOVERY ENGINE] PERSISTENT ANOMALY CONFIRMED: "
+                                        + serviceName
+                        );
+
+                        System.out.println(
+                                "[RECOVERY ENGINE] MULTI-METRIC RECOVERY REQUIRED: "
+                                        + serviceName
+                        );
+
+                        System.out.println(
+                                "[RECOVERY ENGINE] Reason: "
+                                        + decision.reason()
+                        );
+
+                        System.out.println(
+                                "[RECOVERY ENGINE] Starting automatic recovery: "
+                                        + serviceName
+                        );
+
+                        performRecovery(serviceName);
+                    }
+
+                    return;
                 }
 
                 return;
             }
+
+            /*
+             * Healthy metric evaluation resets the persistence counter.
+             */
+            if (consecutiveUnhealthyEvaluations.get(serviceName) > 0) {
+
+                System.out.println(
+                        "[RECOVERY ENGINE] "
+                                + serviceName
+                                + " anomaly cleared before persistence threshold"
+                );
+            }
+
+            consecutiveUnhealthyEvaluations.put(
+                    serviceName,
+                    0
+            );
 
             /*
              * Healthy state.
