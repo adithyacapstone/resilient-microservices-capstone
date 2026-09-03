@@ -15,6 +15,10 @@ public class PrometheusMetricsService {
     @Value("${prometheus.url}")
     private String prometheusUrl;
 
+    /**
+     * Executes an instant PromQL query and returns the first numeric result.
+     * Returns NaN when Prometheus has no usable result.
+     */
     public double getQueryValue(String promQl) {
 
         try {
@@ -85,6 +89,9 @@ public class PrometheusMetricsService {
         }
     }
 
+    /**
+     * Average HTTP request latency in seconds over the last 5 minutes.
+     */
     public double getAverageRequestLatency(
             String serviceName) {
 
@@ -92,7 +99,7 @@ public class PrometheusMetricsService {
                 "sum(rate(http_server_requests_seconds_sum{"
                         + "job=\"" + serviceName + "\""
                         + "}[5m]))"
-                        + "/"
+                        + " / "
                         + "sum(rate(http_server_requests_seconds_count{"
                         + "job=\"" + serviceName + "\""
                         + "}[5m]))";
@@ -100,6 +107,9 @@ public class PrometheusMetricsService {
         return getQueryValue(query);
     }
 
+    /**
+     * Container CPU usage as a percentage.
+     */
     public double getCpuUsage(
             String serviceName) {
 
@@ -112,53 +122,60 @@ public class PrometheusMetricsService {
         return getQueryValue(query);
     }
 
-    public double getHeapMemoryUsage(
-            String serviceName) {
+    /**
+     * JVM heap memory used in bytes.
+     */
+  public double getHeapMemoryUsage(
+        String serviceName) {
 
-        String query =
-                "sum(jvm_memory_used_bytes{"
-                        + "job=\"" + serviceName + "\","
-                        + "area=\"heap\""
-                        + "})";
+    String query =
+            "sum(container_memory_working_set_bytes{"
+                    + "namespace=\"default\","
+                    + "container=\"" + serviceName + "\""
+                    + "})";
 
-        return getQueryValue(query);
-    }
+    return getQueryValue(query);
+}
 
+    /**
+     * JVM heap memory usage percentage.
+     */
     public double getHeapMemoryUsagePercent(
-            String serviceName) {
+        String serviceName) {
 
-        String query =
-                "100 * sum(jvm_memory_used_bytes{"
-                        + "job=\"" + serviceName + "\","
-                        + "area=\"heap\""
-                        + "})"
-                        + "/"
-                        + "sum(jvm_memory_max_bytes{"
-                        + "job=\"" + serviceName + "\","
-                        + "area=\"heap\""
-                        + "})";
+    String query =
+            "100 * sum(container_memory_working_set_bytes{"
+                    + "namespace=\"default\","
+                    + "container=\"" + serviceName + "\""
+                    + "}) / 1000000000";
 
-        return getQueryValue(query);
-    }
+    return getQueryValue(query);
+}
 
+    /**
+     * HTTP error rate as a percentage.
+     *
+     * Counts both CLIENT_ERROR (4xx) and SERVER_ERROR (5xx)
+     * responses, matching the Grafana error-rate definition.
+     */
     public double getErrorRate(
             String serviceName) {
 
         String query =
-                "sum(rate(http_server_requests_seconds_count{"
+                "100 * ("
+                        + "sum(rate(http_server_requests_seconds_count{"
                         + "job=\"" + serviceName + "\","
-                        + "status!=\"200\""
-                        + "}[5m]))";
+                        + "outcome=~\"CLIENT_ERROR|SERVER_ERROR\""
+                        + "}[1m]))"
+                        + " / "
+                        + "sum(rate(http_server_requests_seconds_count{"
+                        + "job=\"" + serviceName + "\""
+                        + "}[1m]))"
+                        + ")";
 
         double value =
                 getQueryValue(query);
 
-        /*
-         * An empty result means there are currently
-         * no non-200 HTTP request series.
-         *
-         * Treat that as zero observed errors.
-         */
         return Double.isNaN(value)
                 ? 0.0
                 : value;
