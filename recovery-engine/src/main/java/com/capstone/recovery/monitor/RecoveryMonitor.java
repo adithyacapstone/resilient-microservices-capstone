@@ -3,6 +3,8 @@ package com.capstone.recovery.monitor;
 import com.capstone.recovery.model.RecoveryDecision;
 import com.capstone.recovery.service.KubernetesRecoveryService;
 import com.capstone.recovery.service.MultiMetricRecoveryService;
+import com.capstone.recovery.service.RecoveryMetricsService;
+import com.capstone.recovery.service.RecoveryStrategy;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1Pod;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +19,8 @@ public class RecoveryMonitor {
 
     private final KubernetesRecoveryService kubernetesRecoveryService;
     private final MultiMetricRecoveryService multiMetricRecoveryService;
+    private final RecoveryStrategy recoveryStrategy;
+    private final RecoveryMetricsService recoveryMetricsService;
 
     /*
      * Services monitored by the Recovery Engine.
@@ -58,13 +62,21 @@ public class RecoveryMonitor {
 
     public RecoveryMonitor(
             KubernetesRecoveryService kubernetesRecoveryService,
-            MultiMetricRecoveryService multiMetricRecoveryService) {
+            MultiMetricRecoveryService multiMetricRecoveryService,
+            RecoveryStrategy recoveryStrategy,
+            RecoveryMetricsService recoveryMetricsService) {
 
         this.kubernetesRecoveryService =
                 kubernetesRecoveryService;
 
         this.multiMetricRecoveryService =
                 multiMetricRecoveryService;
+
+        this.recoveryStrategy =
+                recoveryStrategy;
+
+        this.recoveryMetricsService =
+                recoveryMetricsService;
 
         monitoredServices.put(
                 "product-service",
@@ -99,7 +111,6 @@ public class RecoveryMonitor {
     public void monitorServices() {
 
         for (String serviceName : monitoredServices.keySet()) {
-
             monitorService(serviceName);
         }
     }
@@ -124,6 +135,27 @@ public class RecoveryMonitor {
                                 + " pod NOT FOUND"
                 );
 
+                consecutiveUnhealthyEvaluations.put(
+                        serviceName,
+                        0
+                );
+
+                recoveryMetricsService.updateRecoveryState(
+                        serviceName,
+                        true,
+                        "CRITICAL",
+                        0,
+                        false,
+                        0,
+                        0,
+                        0
+                );
+
+                recoveryMetricsService.setSelectedStrategy(
+                        serviceName,
+                        "POD_RESTART"
+                );
+
                 if (!recoveryInProgress.get(serviceName)) {
 
                     recoveryInProgress.put(
@@ -137,9 +169,16 @@ public class RecoveryMonitor {
                     );
 
                     System.out.println(
+                            "[RECOVERY ENGINE] Selected recovery strategy: "
+                                    + "POD_RESTART"
+                    );
+
+                    System.out.println(
                             "[RECOVERY ENGINE] Starting automatic recovery: "
                                     + serviceName
                     );
+
+                    recoveryMetricsService.recordRecoveryAttempt();
 
                     performRecovery(serviceName);
                 }
@@ -182,6 +221,22 @@ public class RecoveryMonitor {
                 previousRestartCounts.put(
                         serviceName,
                         restartCount
+                );
+
+                recoveryMetricsService.updateRecoveryState(
+                        serviceName,
+                        false,
+                        "HEALTHY",
+                        0,
+                        true,
+                        0,
+                        0,
+                        0
+                );
+
+                recoveryMetricsService.setSelectedStrategy(
+                        serviceName,
+                        "NO_ACTION"
                 );
 
                 System.out.println(
@@ -239,6 +294,22 @@ public class RecoveryMonitor {
                         0
                 );
 
+                recoveryMetricsService.updateRecoveryState(
+                        serviceName,
+                        false,
+                        "HEALTHY",
+                        0,
+                        true,
+                        0,
+                        0,
+                        0
+                );
+
+                recoveryMetricsService.setSelectedStrategy(
+                        serviceName,
+                        "NO_ACTION"
+                );
+
                 if ("Running".equalsIgnoreCase(status)
                         && podReady) {
 
@@ -249,6 +320,8 @@ public class RecoveryMonitor {
                                     + currentPodName
                                     + " (Ready)"
                     );
+
+                    recoveryMetricsService.recordSuccessfulRecovery();
 
                     recoveryInProgress.put(
                             serviceName,
@@ -294,6 +367,22 @@ public class RecoveryMonitor {
                         0
                 );
 
+                recoveryMetricsService.updateRecoveryState(
+                        serviceName,
+                        true,
+                        "CRITICAL",
+                        0,
+                        false,
+                        0,
+                        0,
+                        0
+                );
+
+                recoveryMetricsService.setSelectedStrategy(
+                        serviceName,
+                        "POD_RESTART"
+                );
+
                 System.out.println(
                         "[RECOVERY ENGINE] "
                                 + serviceName
@@ -314,6 +403,40 @@ public class RecoveryMonitor {
                             true
                     );
 
+                    RecoveryDecision safetyDecision =
+                            new RecoveryDecision(
+                                    serviceName,
+                                    true,
+                                    "CRITICAL",
+                                    "Pod not Ready",
+                                    Double.NaN,
+                                    Double.NaN,
+                                    Double.NaN,
+                                    Double.NaN,
+                                    Double.NaN,
+                                    podReady,
+                                    restartCount,
+                                    0,
+                                    0,
+                                    0,
+                                    false
+                            );
+
+                    String strategy =
+                            recoveryStrategy.selectStrategy(
+                                    safetyDecision
+                            );
+
+                    recoveryMetricsService.setSelectedStrategy(
+                            serviceName,
+                            strategy
+                    );
+
+                    System.out.println(
+                            "[RECOVERY ENGINE] Selected recovery strategy: "
+                                    + strategy
+                    );
+
                     System.out.println(
                             "[RECOVERY ENGINE] RECOVERY REQUIRED: "
                                     + serviceName
@@ -323,6 +446,8 @@ public class RecoveryMonitor {
                             "[RECOVERY ENGINE] Starting automatic recovery: "
                                     + serviceName
                     );
+
+                    recoveryMetricsService.recordRecoveryAttempt();
 
                     performRecovery(serviceName);
                 }
@@ -338,11 +463,52 @@ public class RecoveryMonitor {
                             serviceName
                     );
 
+            int currentUnhealthyCount =
+                    decision.recoveryRequired()
+                            ? consecutiveUnhealthyEvaluations.get(serviceName) + 1
+                            : 0;
+
+            if (decision.recoveryRequired()) {
+
+                consecutiveUnhealthyEvaluations.put(
+                        serviceName,
+                        currentUnhealthyCount
+                );
+
+            } else {
+
+                consecutiveUnhealthyEvaluations.put(
+                        serviceName,
+                        0
+                );
+            }
+
+            recoveryMetricsService.updateRecoveryState(
+                    serviceName,
+                    decision.recoveryRequired(),
+                    decision.severity(),
+                    currentUnhealthyCount,
+                    decision.deploymentHealthy(),
+                    decision.desiredReplicas(),
+                    decision.availableReplicas(),
+                    decision.readyReplicas()
+            );
+
+            String selectedStrategy =
+                    recoveryStrategy.selectStrategy(decision);
+
+            recoveryMetricsService.setSelectedStrategy(
+                    serviceName,
+                    selectedStrategy
+            );
+
             System.out.println(
                     "[RECOVERY ENGINE] Multi-metric decision: "
                             + serviceName
                             + " | RecoveryRequired="
                             + decision.recoveryRequired()
+                            + " | Severity="
+                            + decision.severity()
                             + " | Reason="
                             + decision.reason()
                             + " | Latency="
@@ -358,6 +524,14 @@ public class RecoveryMonitor {
                             + decision.errorRate()
                             + " | Ready="
                             + decision.podReady()
+                            + " | Desired="
+                            + decision.desiredReplicas()
+                            + " | Available="
+                            + decision.availableReplicas()
+                            + " | ReadyReplicas="
+                            + decision.readyReplicas()
+                            + " | DeploymentHealthy="
+                            + decision.deploymentHealthy()
             );
 
             /*
@@ -365,30 +539,28 @@ public class RecoveryMonitor {
              */
             if (decision.recoveryRequired()) {
 
-                int currentCount =
-                        consecutiveUnhealthyEvaluations.get(serviceName) + 1;
-
-                consecutiveUnhealthyEvaluations.put(
-                        serviceName,
-                        currentCount
-                );
-
                 System.out.println(
                         "[RECOVERY ENGINE] "
                                 + serviceName
                                 + " unhealthy evaluation "
-                                + currentCount
+                                + currentUnhealthyCount
                                 + "/"
                                 + requiredConsecutiveUnhealthyEvaluations
                 );
 
-                if (currentCount >= requiredConsecutiveUnhealthyEvaluations) {
+                if (currentUnhealthyCount >=
+                        requiredConsecutiveUnhealthyEvaluations) {
 
                     if (!recoveryInProgress.get(serviceName)) {
 
                         recoveryInProgress.put(
                                 serviceName,
                                 true
+                        );
+
+                        System.out.println(
+                                "[RECOVERY ENGINE] Selected recovery strategy: "
+                                        + selectedStrategy
                         );
 
                         System.out.println(
@@ -411,6 +583,8 @@ public class RecoveryMonitor {
                                         + serviceName
                         );
 
+                        recoveryMetricsService.recordRecoveryAttempt();
+
                         performRecovery(serviceName);
                     }
 
@@ -423,19 +597,22 @@ public class RecoveryMonitor {
             /*
              * Healthy metric evaluation resets the persistence counter.
              */
-            if (consecutiveUnhealthyEvaluations.get(serviceName) > 0) {
+            if (currentUnhealthyCount == 0) {
 
-                System.out.println(
-                        "[RECOVERY ENGINE] "
-                                + serviceName
-                                + " anomaly cleared before persistence threshold"
+                if (consecutiveUnhealthyEvaluations.get(serviceName) > 0) {
+
+                    System.out.println(
+                            "[RECOVERY ENGINE] "
+                                    + serviceName
+                                    + " anomaly cleared before persistence threshold"
+                    );
+                }
+
+                consecutiveUnhealthyEvaluations.put(
+                        serviceName,
+                        0
                 );
             }
-
-            consecutiveUnhealthyEvaluations.put(
-                    serviceName,
-                    0
-            );
 
             /*
              * Healthy state.
@@ -448,6 +625,8 @@ public class RecoveryMonitor {
                             + " | Ready=true"
                             + " | Restarts="
                             + restartCount
+                            + " | DeploymentHealthy="
+                            + decision.deploymentHealthy()
             );
 
             if (recoveryInProgress.get(serviceName)) {
@@ -458,6 +637,8 @@ public class RecoveryMonitor {
                                 + " -> "
                                 + currentPodName
                 );
+
+                recoveryMetricsService.recordSuccessfulRecovery();
 
                 recoveryInProgress.put(
                         serviceName,
